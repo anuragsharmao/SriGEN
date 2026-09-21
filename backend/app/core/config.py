@@ -1,0 +1,145 @@
+"""Configuration settings for SriGEN backend using Pydantic Settings."""
+
+import os
+from typing import List, Optional, Set
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    # App info
+    PROJECT_NAME: str = "SriGEN - Secure Generative AI Platform"
+    VERSION: str = "1.0.0"
+    DEBUG: bool = False
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+
+    # LLM Settings (Groq direct SDK)
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_DEFAULT_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_FAST_MODEL: str = "llama-3.1-8b-instant"
+    # Multimodal ingestion models (overridable via env; verify against
+    # https://console.groq.com/docs/vision and /docs/speech-to-text before relying
+    # on these defaults long-term, since Groq's available model list changes).
+    GROQ_VISION_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    GROQ_TRANSCRIBE_MODEL: str = "whisper-large-v3-turbo"
+
+    # Multimodal ingestion limits
+    MAX_UPLOAD_SIZE_MB: int = 25
+
+    # Max characters of raw source text included verbatim in the generation
+    # prompt (app/adapters/base.py::_build_context_prompt). Previously
+    # hardcoded to 4000 with no config surface and no visibility when a
+    # longer document got silently cut. The Fact Graph itself is always
+    # built from the FULL source text (app/services/fact_graph.py) regardless
+    # of this limit, so no fact is lost — this only bounds how much raw
+    # phrasing/context an adapter sees directly. Raised well above the old
+    # 4000: Groq's Llama 3.3 70B has a 128K-token context window, so this
+    # costs little against that budget even at several times this size.
+    MAX_GENERATION_CONTEXT_CHARS: int = 20000
+
+    # Database
+    DATABASE_URL: str = "sqlite:///./srigen.db"
+
+    # Provenance Ledger
+    OPERATOR_ID: str = "operator_sec_01"
+    LEDGER_GENESIS_HASH: str = "0000000000000000000000000000000000000000000000000000000000000000"
+
+    # Security Firewall: Built-in sensitive marker patterns & classified regexes (structural only)
+    SENSITIVE_PATTERNS: dict = {
+        "LOCATION": [
+            r"\b(?:Forward Operating Base [A-Z0-9\-]+|Sector-[0-9]+|Site-[A-Z0-9]+|Grid Ref [0-9A-Z]+|Station [A-Z0-9]+|Post [0-9]+)\b",
+            r"\b(?:Lat\s*-?\d+\.\d+,\s*Long\s*-?\d+\.\d+|\b\d{1,2}°\d{1,2}'[NS]\s+\d{1,3}°\d{1,2}'[EW]\b)\b",
+        ],
+        "UNIT_NAME": [
+            r"\b(?:Cyber Command Division [0-9]+|NTRO-[A-Z0-9]+|Task Force [0-9A-Z]+|Special Operations Wing|Signals Directorate)\b",
+            r"\b(?:Unit [0-9]{3,4}|Detachment [A-Z0-9]+)\b"
+        ],
+        "CLASSIFIED_ASSET": [
+            r"\b(?:SAT-COMM-[0-9]+|PROJECT-[A-Z0-9]+|INS-[A-Z0-9]+|RADAR-ARRAY-[0-9]+)\b",
+            r"\b(?:Operation [A-Z][a-zA-Z0-9]+|Vault-[0-9]+)\b"
+        ],
+        "PERSON": [
+            r"\b(?:Director General [A-Z][a-z]+ [A-Z][a-z]+|Brigadier [A-Z][a-z]+|Col\. [A-Z][a-z]+|Agent [0-9A-Z]+)\b"
+        ],
+        "IP_ADDRESS": [
+            r"\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})\b"
+        ]
+    }
+
+    # Document furniture and stopwords that should never be treated as named entities
+    ENTITY_BOILERPLATE: Set[str] = {
+        "for immediate release",
+        "frequently asked questions",
+        "executive summary",
+        "situation report",
+        "key highlights",
+        "recommended actions",
+        "background",
+        "current status",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
+        "immediate release",
+        "operational", "immediate", "reaffirms",
+    }
+
+    # Generic, category-appropriate phrases for public-facing exports (by language)
+    GENERIC_PLACEHOLDER_PHRASES: dict = {
+        "LOCATION": {
+            "en": ["an affected location", "a regional site", "the affected area"],
+            "hi": ["एक प्रभावित स्थान", "एक क्षेत्रीय स्थल", "प्रभावित क्षेत्र"],
+        },
+        "UNIT_NAME": {
+            "en": ["the responding unit", "the designated unit", "the operational team"],
+            "hi": ["प्रतिक्रिया इकाई", "निर्दिष्ट इकाई", "परिचालन दल"],
+        },
+        "CLASSIFIED_ASSET": {
+            "en": ["the protected asset", "operational infrastructure"],
+            "hi": ["संरक्षित संपत्ति", "परिचालन अवसंरचना"],
+        },
+        "PERSON": {
+            "en": ["the individual", "the unnamed individual", "the person involved"],
+            "hi": ["संबंधित व्यक्ति", "नामोल्लेख रहित व्यक्ति", "संबद्ध व्यक्ति"],
+        },
+        "IP_ADDRESS": {
+            "en": ["a network endpoint"],
+            "hi": ["एक नेटवर्क एंडपॉइंट"],
+        },
+        "OTHER_SENSITIVE": {
+            "en": ["an operational detail"],
+            "hi": ["एक परिचालन विवरण"],
+        },
+    }
+
+    # CORS: explicit allowlist only, read from a comma-separated env string.
+    # Defaults to localhost dev origins only — never "*", since allow_credentials
+    # is True once auth tokens are in play (a "*" + credentials combination is
+    # rejected by browsers anyway, and is a real cross-origin risk otherwise).
+    CORS_ORIGINS_RAW: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # Auth (default credential-based implementation — see app/services/auth.py).
+    # Bootstrap account created on first startup ONLY if no operator exists yet;
+    # leave unset in any shared/production environment once real accounts exist.
+    OPERATOR_BOOTSTRAP_USERNAME: Optional[str] = None
+    OPERATOR_BOOTSTRAP_PASSWORD: Optional[str] = None
+
+    # Pluggable LLM backend selection (item 4). "groq" is the only implemented
+    # backend today; the LLMBackend interface in app/core/llm_client.py exists
+    # so a self-hosted/VPC-scoped backend can be added later without touching
+    # orchestrator/adapter/service code.
+    LLM_BACKEND: str = "groq"
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        origins = [o.strip() for o in self.CORS_ORIGINS_RAW.split(",") if o.strip()]
+        if "*" in origins:
+            # Never combine a wildcard with allow_credentials=True (main.py always
+            # sets allow_credentials=True once auth exists) — drop it rather than
+            # silently allow every origin to send credentialed requests.
+            origins = [o for o in origins if o != "*"]
+        return origins
+
+
+settings = Settings()
