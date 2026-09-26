@@ -1,0 +1,1229 @@
+/* ==========================================================================
+   SriGEN — VERIFY & REVIEW WORKSPACE STYLES
+   Adheres strictly to the canonical SriGEN design system:
+   Dark navy/black shell (#0b0c0e), warm cream document surface (#ffffff/#fdfcf9),
+   gold/amber primary accents (#d09a45), emerald status badges (#10b981).
+   ========================================================================== */
+
+.verify-page-root {
+  min-height: 100vh;
+  background-color: #0b0c0e;
+  color: #e5e7eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page Shell & Container */
+.verify-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 100px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Pipeline Progress Breadcrumbs
+   -------------------------------------------------------------------------- */
+.verify-pipeline-tracker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  background: #11141a;
+  border: 1px solid #1e2430;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.pipeline-step.completed {
+  color: #9ca3af;
+}
+
+.pipeline-step.active {
+  color: #d09a45;
+  font-weight: 600;
+}
+
+.pipeline-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  background: #1a1e27;
+  color: #9ca3af;
+}
+
+.pipeline-step.active .pipeline-step-badge {
+  background: #d09a45;
+  color: #0b0c0e;
+  font-weight: 700;
+}
+
+.pipeline-step.completed .pipeline-step-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.pipeline-divider {
+  color: #374151;
+  font-size: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Page Header
+   -------------------------------------------------------------------------- */
+.verify-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.verify-header-title-block h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.verify-header-subtitle {
+  font-size: 0.9375rem;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+.verify-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.source-ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #151921;
+  border: 1px solid #232a38;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+}
+
+.source-ref-chip .hash-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Trust Score Composite Banner (50% Grounding, 30% Consistency, 20% Policy)
+   -------------------------------------------------------------------------- */
+.trust-score-hero-banner {
+  background: linear-gradient(180deg, #131720 0%, #0e1117 100%);
+  border: 1px solid #232b3b;
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.trust-hero-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #1e2533;
+}
+
+.trust-hero-score-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.trust-score-dial-large {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 4px solid #10b981;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(11, 12, 14, 0.8) 100%);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.trust-dial-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #10b981;
+  line-height: 1;
+}
+
+.trust-dial-scale {
+  font-size: 0.6875rem;
+  color: #6ee7b7;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.trust-hero-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trust-verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.trust-hero-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0;
+}
+
+.trust-hero-sub {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.trust-score-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.trust-pillar-card {
+  background: #141822;
+  border: 1px solid #1f2737;
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.pillar-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pillar-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pillar-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.pillar-weight-tag {
+  font-size: 0.6875rem;
+  color: #d09a45;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.pillar-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+.pillar-bar-outer {
+  height: 6px;
+  background: #232a39;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.pillar-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.fill-grounding {
+  background: #10b981;
+}
+
+.fill-consistency {
+  background: #38bdf8;
+}
+
+.fill-policy {
+  background: #a78bfa;
+}
+
+.pillar-caption {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Deliverable Selector Tabs
+   -------------------------------------------------------------------------- */
+.verify-deliverables-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.verify-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #131720;
+  border: 1px solid #1e2534;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.verify-nav-tab:hover {
+  background: #191f2b;
+  color: #e5e7eb;
+}
+
+.verify-nav-tab.active {
+  background: #1e2637;
+  color: #f3f4f6;
+  border-color: #d09a45;
+  font-weight: 600;
+}
+
+.tab-badge-pass {
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Main Workspace Two-Column Split (Document vs Inspector)
+   -------------------------------------------------------------------------- */
+.verify-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1100px) {
+  .verify-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Canonical Warm Cream Document Surface */
+.verify-document-card {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.verify-doc-header {
+  padding: 16px 24px;
+  background: #fbfbf9;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.verify-doc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.verify-doc-icon {
+  color: #d09a45;
+  display: flex;
+}
+
+.verify-doc-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.verify-doc-badge {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.verify-doc-content-body {
+  padding: 28px 32px;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #1f2937;
+  min-height: 480px;
+  overflow-y: auto;
+  max-height: 680px;
+}
+
+.verify-doc-content-body p {
+  margin: 0 0 16px 0;
+}
+
+.verify-doc-content-body h2,
+.verify-doc-content-body h3 {
+  color: #111827;
+  margin: 20px 0 10px 0;
+  font-weight: 700;
+}
+
+/* Claim Highlight Markers on Document Surface */
+.claim-mark {
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, outline 0.15s ease;
+  position: relative;
+  display: inline;
+}
+
+.claim-mark.verified {
+  background: rgba(16, 185, 129, 0.18);
+  border-bottom: 2px solid #10b981;
+}
+
+.claim-mark.verified:hover,
+.claim-mark.verified.active {
+  background: rgba(16, 185, 129, 0.3);
+  outline: 2px solid #10b981;
+}
+
+.claim-mark.warning {
+  background: rgba(245, 158, 11, 0.2);
+  border-bottom: 2px solid #f59e0b;
+}
+
+.claim-mark.warning:hover,
+.claim-mark.warning.active {
+  background: rgba(245, 158, 11, 0.35);
+  outline: 2px solid #f59e0b;
+}
+
+.claim-mark.flagged {
+  background: rgba(239, 68, 68, 0.2);
+  border-bottom: 2px solid #ef4444;
+}
+
+.claim-mark.flagged:hover,
+.claim-mark.flagged.active {
+  background: rgba(239, 68, 68, 0.35);
+  outline: 2px solid #ef4444;
+}
+
+/* Inline Disclosure Spans */
+.disclosure-span-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  margin: 0 2px;
+  vertical-align: baseline;
+}
+
+.disclosure-span-tag.disclosed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.disclosure-span-tag.withheld {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #9ca3af;
+  text-decoration: line-through;
+}
+
+.disclosure-span-tag.edited {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+.disclosure-span-tag.pending {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+  border: 1px dashed #ef4444;
+  animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* Document Surface Footer */
+.verify-doc-footer {
+  padding: 12px 24px;
+  background: #fbfbf9;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.legend-row {
+  display: flex;
+  gap: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-green { background: #10b981; }
+.dot-amber { background: #f59e0b; }
+.dot-red { background: #ef4444; }
+
+/* --------------------------------------------------------------------------
+   Audit & Evidence Inspector Panel (Right Column)
+   -------------------------------------------------------------------------- */
+.verify-inspector-panel {
+  background: #11141b;
+  border: 1px solid #1f2635;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.inspector-tabs-header {
+  display: flex;
+  border-bottom: 1px solid #1f2635;
+  background: #0d1016;
+}
+
+.inspector-tab-btn {
+  flex: 1;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.inspector-tab-btn:hover {
+  color: #e5e7eb;
+  background: #141923;
+}
+
+.inspector-tab-btn.active {
+  color: #d09a45;
+  background: #141923;
+  border-bottom-color: #d09a45;
+}
+
+.inspector-tab-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.badge-emerald {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.inspector-tab-content {
+  padding: 20px 24px;
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+/* Tab 1: Claims List & Deep Evidence Card */
+.claims-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.claim-item-card {
+  background: #151922;
+  border: 1px solid #222a3a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.claim-item-card:hover {
+  border-color: #384257;
+  background: #181d28;
+}
+
+.claim-item-card.selected {
+  border-color: #d09a45;
+  background: #19202e;
+}
+
+.claim-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.claim-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.tag-verified {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.tag-extrapolated {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.tag-unverified {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.claim-score-val {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.claim-statement-text {
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Expanded Evidence Details */
+.claim-evidence-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #232b3c;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-quote-box {
+  background: #0d1016;
+  border-left: 3px solid #10b981;
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.evidence-source-loc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Tab 2: Cross-Output Consistency Matrix */
+.consistency-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.consistency-matrix-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #151a24;
+  color: #9ca3af;
+  font-weight: 600;
+  border-bottom: 1px solid #232b3b;
+}
+
+.consistency-matrix-table td {
+  padding: 12px;
+  border-bottom: 1px solid #1c2230;
+  color: #d1d5db;
+  vertical-align: middle;
+}
+
+.consistency-matrix-table tr:hover td {
+  background: #141822;
+}
+
+.status-chip-match {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.status-chip-variation {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* Tab 3: Policy & Institutional Guidelines */
+.policy-checklist-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.policy-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #141822;
+  border: 1px solid #1f2737;
+  border-radius: 8px;
+}
+
+.policy-check-icon {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.policy-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0 0 2px 0;
+}
+
+.policy-item-desc {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   CRITICAL SECTION D: Disclosure Controls Governance Panel
+   -------------------------------------------------------------------------- */
+.disclosure-governance-section {
+  background: #10141c;
+  border: 1px solid #252d3d;
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 36px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+.disclosure-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.disclosure-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.disclosure-icon-shield {
+  display: flex;
+  color: #d09a45;
+}
+
+.disclosure-title-group h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0;
+}
+
+.disclosure-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pill-all-resolved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pill-pending-action {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.disclosure-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-bulk-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #18202d;
+  border: 1px solid #2f3a4e;
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-bulk-accept:hover {
+  background: #202b3c;
+  border-color: #d09a45;
+  color: #d09a45;
+}
+
+.disclosure-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.disclosure-card {
+  background: #141822;
+  border: 1px solid #202737;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  transition: border-color 0.15s ease;
+}
+
+.disclosure-card.is-unresolved {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, #141822 100%);
+}
+
+.disclosure-info-col {
+  flex: 1;
+  min-width: 280px;
+}
+
+.disclosure-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.disclosure-cat-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #1c2331;
+  color: #d09a45;
+}
+
+.disclosure-val-text {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.875rem;
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+.disclosure-reasoning {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.disclosure-rec-hint {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  margin-top: 4px;
+}
+
+.disclosure-rec-hint strong {
+  color: #38bdf8;
+}
+
+.disclosure-controls-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.choice-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #2a3346;
+  background: #181d28;
+  color: #9ca3af;
+  transition: all 0.15s ease;
+}
+
+.choice-btn:hover {
+  background: #202736;
+  color: #e5e7eb;
+}
+
+.choice-btn.selected-disclose {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.choice-btn.selected-withhold {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.choice-btn.selected-edit {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Inline Edit Box for Custom Redaction */
+.disclosure-edit-inline {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #283244;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.disclosure-edit-input {
+  flex: 1;
+  background: #0d1016;
+  border: 1px solid #2a3447;
+  color: #f3f4f6;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.disclosure-edit-input:focus {
+  outline: none;
+  border-color: #d09a45;
+}
+
+/* --------------------------------------------------------------------------
+   Section E: Sticky Action Bar at Bottom
+   -------------------------------------------------------------------------- */
+.verify-sticky-actionbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(11, 12, 14, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #1e2430;
+  padding: 16px 32px;
+  z-index: 50;
+}
+
+.sticky-actionbar-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.actionbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.actionbar-gate-warning {
+  font-size: 0.8125rem;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #141822;
+  border: 1px solid #232b3b;
+  border-radius: 6px;
+  color: #d1d5db;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-action:hover {
+  background: #1d2331;
+  border-color: #354054;
+  color: #f3f4f6;
+}
+
+.btn-primary-approval {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #d09a45;
+  border: 1px solid #e5ad58;
+  border-radius: 6px;
+  color: #0b0c0e;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 10px rgba(208, 154, 69, 0.25);
+}
+
+.btn-primary-approval:hover:not(:disabled) {
+  background: #b88435;
+  transform: translateY(-1px);
+}
+
+.btn-primary-approval:disabled {
+  background: #252b36;
+  border-color: #323a48;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   Verification Modal (Step progression)
+   -------------------------------------------------------------------------- */
+.verify-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.verify-modal-card {
+  background: #10131a;
+  border: 1px solid #242c3d;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 540px;
+  padding: 32px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.verify-modal-icon-spinner {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px auto;
+  border: 3px solid #232b3a;
+  border-top-color: #d09a45;
+  border-radius: 50%;
+  animation: modalSpin 1s linear infinite;
+}
+
+@keyframes modalSpin {
+  to { transform: rotate(360deg); }
+}
+
+.verify-modal-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 8px 0;
+}
+
+.verify-modal-desc {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0 0 24px 0;
+}
+
+.verify-steps-progression {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  background: #141822;
+  border: 1px solid #1f2738;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.step-prog-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.step-prog-row.completed {
+  color: #10b981;
+}
+
+.step-prog-row.active {
+  color: #d09a45;
+  font-weight: 600;
+}
+
+.step-prog-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,463 @@
+/* ==========================================================================
+   SriGEN — PROVENANCE CONFIRMATION WORKSPACE STYLES
+   Adheres strictly to the canonical SriGEN design system:
+   Dark navy/black shell (#0b0c0e), warm cream document surface (#ffffff/#fdfcf9),
+   gold/amber primary accents (#d09a45), emerald status badges (#10b981).
+   ========================================================================== */
+
+.provenance-page-root {
+  min-height: 100vh;
+  background-color: #0b0c0e;
+  color: #e5e7eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.provenance-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 100px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Pipeline Progress Breadcrumbs
+   -------------------------------------------------------------------------- */
+.provenance-pipeline-tracker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  background: #11141a;
+  border: 1px solid #1e2430;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.provenance-pipeline-tracker .pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.provenance-pipeline-tracker .pipeline-step.completed {
+  color: #9ca3af;
+}
+
+.provenance-pipeline-tracker .pipeline-step.active {
+  color: #d09a45;
+  font-weight: 600;
+}
+
+.provenance-pipeline-tracker .pipeline-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  background: #1a1e27;
+  color: #9ca3af;
+}
+
+.provenance-pipeline-tracker .pipeline-step.active .pipeline-step-badge {
+  background: #d09a45;
+  color: #0b0c0e;
+  font-weight: 700;
+}
+
+.provenance-pipeline-tracker .pipeline-step.completed .pipeline-step-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.provenance-pipeline-tracker .pipeline-divider {
+  color: #374151;
+  font-size: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Success Confirmation Hero Banner
+   -------------------------------------------------------------------------- */
+.provenance-hero-card {
+  background: linear-gradient(180deg, #131720 0%, #0d1016 100%);
+  border: 1px solid #232b3b;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.provenance-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.provenance-seal-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(11, 12, 14, 0.8) 100%);
+  border: 2px solid #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
+}
+
+.provenance-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.provenance-tag-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #34d399;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.provenance-hero-title {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 2px 0 0 0;
+}
+
+.provenance-hero-meta {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.provenance-hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: #161b25;
+  border: 1px solid #283346;
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-hero-action:hover {
+  background: #1f2736;
+  border-color: #d09a45;
+  color: #d09a45;
+}
+
+.btn-hero-action-gold {
+  background: #d09a45;
+  border-color: #e5ad58;
+  color: #0b0c0e;
+  font-weight: 700;
+}
+
+.btn-hero-action-gold:hover {
+  background: #b88435;
+  color: #0b0c0e;
+}
+
+/* --------------------------------------------------------------------------
+   Two-Column Grid: Cryptographic Audit Record vs Approved Document Preview
+   -------------------------------------------------------------------------- */
+.provenance-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+@media (max-width: 1100px) {
+  .provenance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Technical Card: Cryptographic Audit Record */
+.crypto-audit-card {
+  background: #11141b;
+  border: 1px solid #1f2635;
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1f2635;
+}
+
+.card-header-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chain-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #34d399;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.crypto-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crypto-field-item {
+  background: #141822;
+  border: 1px solid #1f2738;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.crypto-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.crypto-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.btn-copy-hash {
+  background: transparent;
+  border: none;
+  color: #d09a45;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.btn-copy-hash:hover {
+  text-decoration: underline;
+}
+
+.crypto-value-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* Deliverable Details Box */
+.deliverable-summary-box {
+  background: #141822;
+  border: 1px solid #1f2738;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.summary-row-label {
+  color: #9ca3af;
+}
+
+.summary-row-val {
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Right Column: Approved Deliverable Warm Cream Preview */
+.approved-preview-card {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.approved-watermark {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-size: 4rem;
+  font-weight: 900;
+  color: rgba(16, 185, 129, 0.06);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.approved-header-bar {
+  padding: 16px 24px;
+  background: #fbfbf9;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.approved-stamp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.approved-body-content {
+  padding: 32px;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #1f2937;
+  min-height: 480px;
+  max-height: 680px;
+  overflow-y: auto;
+}
+
+.approved-body-content p {
+  margin: 0 0 16px 0;
+}
+
+.approved-body-content h2,
+.approved-body-content h3 {
+  color: #111827;
+  margin: 20px 0 10px 0;
+  font-weight: 700;
+}
+
+.approved-footer-bar {
+  padding: 12px 24px;
+  background: #fbfbf9;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Modal for JSON Proof Export */
+.proof-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.proof-modal-card {
+  background: #10131a;
+  border: 1px solid #242c3d;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  padding: 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.proof-json-box {
+  background: #090b0e;
+  border: 1px solid #1f2635;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+  color: #a7f3d0;
+  max-height: 380px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

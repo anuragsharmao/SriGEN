@@ -1,0 +1,496 @@
+/* ==========================================================================
+   SriGEN — APPROVAL GATE WORKSPACE STYLES
+   Adheres strictly to the canonical SriGEN design system:
+   Dark navy/black shell (#0b0c0e), warm cream document surface (#ffffff/#fdfcf9),
+   gold/amber primary accents (#d09a45), emerald status badges (#10b981).
+   ========================================================================== */
+
+.approval-page-root {
+  min-height: 100vh;
+  background-color: #0b0c0e;
+  color: #e5e7eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.approval-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 100px 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Pipeline Progress Breadcrumbs
+   -------------------------------------------------------------------------- */
+.approval-pipeline-tracker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  background: #11141a;
+  border: 1px solid #1e2430;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.approval-pipeline-tracker .pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.approval-pipeline-tracker .pipeline-step.completed {
+  color: #9ca3af;
+}
+
+.approval-pipeline-tracker .pipeline-step.active {
+  color: #d09a45;
+  font-weight: 600;
+}
+
+.approval-pipeline-tracker .pipeline-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  background: #1a1e27;
+  color: #9ca3af;
+}
+
+.approval-pipeline-tracker .pipeline-step.active .pipeline-step-badge {
+  background: #d09a45;
+  color: #0b0c0e;
+  font-weight: 700;
+}
+
+.approval-pipeline-tracker .pipeline-step.completed .pipeline-step-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.approval-pipeline-tracker .pipeline-divider {
+  color: #374151;
+  font-size: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Page Header
+   -------------------------------------------------------------------------- */
+.approval-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.approval-title-block h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.approval-subtitle {
+  font-size: 0.9375rem;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+.approval-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  color: #34d399;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Two-Column Grid (Final Preview vs Audit Summary & Sign-Off)
+   -------------------------------------------------------------------------- */
+.approval-workspace-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 28px;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1100px) {
+  .approval-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final Deliverable Warm Cream Surface */
+.approval-preview-card {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.approval-preview-header {
+  padding: 16px 24px;
+  background: #fbfbf9;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-badge-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  background: rgba(208, 154, 69, 0.15);
+  color: #b88435;
+  border: 1px solid rgba(208, 154, 69, 0.3);
+  border-radius: 4px;
+}
+
+.approval-preview-body {
+  padding: 32px;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #1f2937;
+  min-height: 460px;
+  overflow-y: auto;
+  max-height: 640px;
+}
+
+.approval-preview-body p {
+  margin: 0 0 16px 0;
+}
+
+.approval-preview-body h2,
+.approval-preview-body h3 {
+  color: #111827;
+  margin: 20px 0 12px 0;
+  font-weight: 700;
+}
+
+.approval-preview-footer {
+  padding: 14px 24px;
+  background: #fbfbf9;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* --------------------------------------------------------------------------
+   Audit Badges & Compliance Summary (Right Column)
+   -------------------------------------------------------------------------- */
+.approval-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.audit-summary-card {
+  background: #11141b;
+  border: 1px solid #1f2635;
+  border-radius: 10px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.audit-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-badges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audit-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #151922;
+  border: 1px solid #1f2737;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.audit-item-label {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-item-val {
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+.audit-item-val.emerald {
+  color: #10b981;
+}
+
+.audit-item-val.mono {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+/* Sign-off Card */
+.signoff-card {
+  background: linear-gradient(180deg, #131722 0%, #0f1219 100%);
+  border: 1px solid #232b3c;
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.signoff-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-profile-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: #171c26;
+  border: 1px solid #242c3c;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.operator-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #252e40;
+  color: #d09a45;
+  font-weight: 700;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(208, 154, 69, 0.3);
+}
+
+.operator-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.operator-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.operator-roles {
+  font-size: 0.75rem;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.approval-notes-field {
+  margin-bottom: 20px;
+}
+
+.approval-notes-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+.approval-notes-textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #0d1016;
+  border: 1px solid #242c3d;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #f3f4f6;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.approval-notes-textarea:focus {
+  outline: none;
+  border-color: #d09a45;
+}
+
+.signoff-actions-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-reject-back {
+  flex: 1;
+  padding: 12px;
+  background: #141822;
+  border: 1px solid #283144;
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-reject-back:hover {
+  background: #1c2230;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.btn-commit-ledger {
+  flex: 2;
+  padding: 12px 18px;
+  background: #d09a45;
+  border: 1px solid #e5ad58;
+  border-radius: 6px;
+  color: #0b0c0e;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(208, 154, 69, 0.3);
+  transition: all 0.15s ease;
+}
+
+.btn-commit-ledger:hover {
+  background: #b88435;
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   Commit to Ledger Staged Modal
+   -------------------------------------------------------------------------- */
+.commit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.commit-modal-card {
+  background: #10131a;
+  border: 1px solid #242c3d;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  padding: 32px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.commit-modal-icon-spinner {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px auto;
+  border: 3px solid #232b3a;
+  border-top-color: #d09a45;
+  border-radius: 50%;
+  animation: commitSpin 1s linear infinite;
+}
+
+@keyframes commitSpin {
+  to { transform: rotate(360deg); }
+}
+
+.commit-steps-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  background: #141822;
+  border: 1px solid #1f2738;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 20px;
+}
+
+.commit-step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.commit-step-row.completed {
+  color: #10b981;
+}
+
+.commit-step-row.active {
+  color: #d09a45;
+  font-weight: 600;
+}
