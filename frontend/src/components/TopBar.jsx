@@ -38,14 +38,17 @@ export default function TopBar({ activePage }) {
 
   // Determine current active page from prop or pathname
   const currentActive =
-    activePage ||
-    (location.pathname === "/refine"
-      ? "refine"
-      : location.pathname === "/generate"
+    activePage === "generate" ||
+    activePage === "result" ||
+    activePage === "validate" ||
+    activePage === "verify-review" ||
+    ["/generate", "/result", "/validate", "/verify-review"].includes(location.pathname)
       ? "generate"
-      : location.pathname === "/dashboard"
+      : activePage === "home" || location.pathname === "/dashboard"
       ? "home"
-      : "");
+      : activePage === "history" || location.hash === "#history"
+      ? "history"
+      : activePage || "";
 
   return (
     <header className="dash-nav srigen-master-topbar">
@@ -58,7 +61,7 @@ export default function TopBar({ activePage }) {
           <span className="dash-brand-text">SriGEN</span>
         </Link>
 
-        {/* Canonical Navigation Links */}
+        {/* Canonical Navigation Links: Home, Generate, History */}
         <nav className="dash-links" aria-label="Primary Navigation">
           <Link
             to="/dashboard"
@@ -71,12 +74,6 @@ export default function TopBar({ activePage }) {
             className={`dash-link ${currentActive === "generate" ? "dash-link-active" : ""}`}
           >
             Generate
-          </Link>
-          <Link
-            to="/refine"
-            className={`dash-link ${currentActive === "refine" ? "dash-link-active" : ""}`}
-          >
-            Refine
           </Link>
           <a
             href="/dashboard#history"

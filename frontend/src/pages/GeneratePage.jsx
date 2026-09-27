@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import TopBar from "../components/TopBar.jsx";
 import { workflowStore } from "../services/workflowStore.js";
 import { api } from "../services/api.js";
@@ -471,6 +472,7 @@ const DEFAULT_SENSITIVE_FINDINGS = [
 ];
 
 export default function GeneratePage() {
+  const navigate = useNavigate();
   // Source material state — null initially so user can provide their own input
   const [sourceFile, setSourceFile] = useState(null);
   const [sourceInputMode, setSourceInputMode] = useState("upload"); // 'upload' | 'paste'
@@ -718,7 +720,12 @@ export default function GeneratePage() {
         text: sourceFile.text,
       });
       workflowStore.setGenerationResult(finalGenResult);
-      setActiveModal("results");
+
+      // Transition smoothly from processing to full-page Validate Result workspace
+      setTimeout(() => {
+        setActiveModal(null);
+        navigate("/result");
+      }, 400);
     } catch (err) {
       console.error("Generation error:", err);
       setGenerationError(err.message || "Generation failed.");
@@ -1997,94 +2004,7 @@ export default function GeneratePage() {
         </div>
       )}
 
-      {/* 5. GENERATED RESULTS MODAL */}
-      {activeModal === "results" && generatedDrafts && (
-        <div className="modal-overlay" role="dialog">
-          <div className="modal-window modal-results">
-            <div className="modal-top">
-              <div className="modal-title-wrap">
-                <Icon.Spark />
-                <h3>Transformation Complete — {generatedDrafts.drafts.length} Deliverables Generated</h3>
-              </div>
-              <button
-                className="modal-close-btn"
-                type="button"
-                onClick={() => setActiveModal(null)}
-              >
-                <Icon.Close />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              {/* Trust Score Telemetry Banner */}
-              <div className="trust-score-banner">
-                <div className="ts-main">
-                  <span className="ts-label">COMPOSITE TRUST INDEX</span>
-                  <span className="ts-val">
-                    {generatedDrafts.trust_score.composite}%
-                  </span>
-                </div>
-                <div className="ts-subscores">
-                  <div className="ts-metric">
-                    <span className="metric-name">Grounding</span>
-                    <span className="metric-num">
-                      {generatedDrafts.trust_score.grounding}%
-                    </span>
-                  </div>
-                  <div className="ts-metric">
-                    <span className="metric-name">Consistency</span>
-                    <span className="metric-num">
-                      {generatedDrafts.trust_score.consistency}%
-                    </span>
-                  </div>
-                  <div className="ts-metric">
-                    <span className="metric-name">Policy</span>
-                    <span className="metric-num">
-                      {generatedDrafts.trust_score.policy}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Draft Tabs & Content Previews */}
-              <div className="drafts-results-list">
-                {generatedDrafts.drafts.map((draft) => (
-                  <div key={draft.id} className="draft-result-card">
-                    <div className="draft-card-head">
-                      <span className="draft-tag">{draft.title}</span>
-                      <span className="draft-status-pill">
-                        <Icon.CheckCircle /> {draft.status}
-                      </span>
-                    </div>
-                    <pre className="draft-content-text">{draft.content}</pre>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                type="button"
-                onClick={() => setActiveModal(null)}
-              >
-                Back to Workspace
-              </button>
-              <a className="btn-secondary" href="/refine">
-                <Icon.EditRefine />
-                <span>Refine Deliverable</span>
-              </a>
-              <a className="btn-primary" href="/result">
-                <span>Proceed to Human Review & Provenance</span>
-                <Icon.ArrowRight />
-              </a>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 6. SENSITIVITY FINDING CONTEXT MODAL */}
+      {/* 5. SENSITIVITY FINDING CONTEXT MODAL */}
       {selectedContextFinding && (
         <div
           className="modal-overlay"

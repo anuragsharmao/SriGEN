@@ -980,9 +980,9 @@ export default function RefinePage() {
               </button>
               <a
                 className="rf-btn-primary-link"
-                href="/verify-review"
+                href="/result"
               >
-                <span>Proceed to Human Review & Provenance</span>
+                <span>Proceed to Validate Result</span>
                 <Icon.ArrowRight />
               </a>
 

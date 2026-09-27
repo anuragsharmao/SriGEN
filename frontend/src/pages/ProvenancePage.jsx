@@ -146,21 +146,16 @@ export default function ProvenancePage() {
           <span className="pipeline-divider">›</span>
           <Link to="/result" className="pipeline-step completed">
             <span className="pipeline-step-badge">2</span>
-            <span>Result</span>
-          </Link>
-          <span className="pipeline-divider">›</span>
-          <Link to="/verify-review" className="pipeline-step completed">
-            <span className="pipeline-step-badge">3</span>
-            <span>Verify & Review</span>
+            <span>Validate Result</span>
           </Link>
           <span className="pipeline-divider">›</span>
           <Link to="/approval" className="pipeline-step completed">
-            <span className="pipeline-step-badge">4</span>
+            <span className="pipeline-step-badge">3</span>
             <span>Approval</span>
           </Link>
           <span className="pipeline-divider">›</span>
           <div className="pipeline-step active">
-            <span className="pipeline-step-badge">5</span>
+            <span className="pipeline-step-badge">4</span>
             <span>Provenance Record</span>
           </div>
         </div>

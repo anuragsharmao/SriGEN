@@ -1,0 +1,1657 @@
+/* ==========================================================================
+   SriGEN — Validate Result Full-Page Workspace Stylesheet
+   Theme: High-Assurance Intelligence Platform Aesthetic
+   Palette: Dark Chrome (#08090b, #0d0f14), Archival Cream Paper (#f6f3eb),
+            SriGEN Gold (#d09a45), Verified Green (#52a87a), Attention Amber (#e09f3e)
+   ========================================================================== */
+
+.val-workspace-root {
+  min-height: 100vh;
+  background-color: #08090b;
+  color: #f5f1e8;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   2. SUB-HEADER & WORKFLOW PROGRESSION
+   ========================================================================== */
+
+.val-subhead {
+  position: relative;
+  border-bottom: 1px solid rgba(245, 241, 232, 0.08);
+  background: linear-gradient(180deg, rgba(14, 16, 22, 0.7) 0%, rgba(8, 9, 11, 0.95) 100%);
+  overflow: hidden;
+  padding: 22px 36px 18px;
+}
+
+.val-topo-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.val-topo-bg svg {
+  width: 100%;
+  height: 100%;
+}
+
+.val-subhead-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.val-title-block {
+  flex: 1;
+  min-width: 320px;
+}
+
+.val-eyebrow {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(245, 241, 232, 0.55);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.val-heading {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: #f5f1e8;
+  margin: 0 0 6px 0;
+  line-height: 1.15;
+}
+
+.val-supporting {
+  font-size: 13.5px;
+  color: rgba(245, 241, 232, 0.65);
+  margin: 0;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+/* Workflow Step Path (UNDERSTAND -> CONTROL -> GENERATE -> VALIDATE -> PROVE) */
+
+.val-workflow-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.val-wf-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.val-wf-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 241, 232, 0.16);
+  background: rgba(245, 241, 232, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(245, 241, 232, 0.55);
+  transition: all 0.2s ease;
+}
+
+.val-wf-circle svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.val-wf-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.val-wf-label .wf-num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(245, 241, 232, 0.45);
+  letter-spacing: 0.04em;
+}
+
+.val-wf-label .wf-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(245, 241, 232, 0.7);
+}
+
+.val-wf-connector {
+  color: rgba(245, 241, 232, 0.22);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 18px;
+  user-select: none;
+}
+
+/* Active 04 VALIDATE Step */
+.val-wf-step.val-wf-active .val-wf-circle-gold {
+  border: 2px solid #d09a45;
+  background: rgba(208, 154, 69, 0.12);
+  color: #d09a45;
+  box-shadow: 0 0 16px rgba(208, 154, 69, 0.35);
+  position: relative;
+}
+
+.val-wf-step.val-wf-active .val-wf-circle-gold::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px dashed rgba(208, 154, 69, 0.35);
+}
+
+.val-wf-label-gold .wf-num,
+.val-wf-label-gold .wf-name {
+  color: #d09a45 !important;
+  font-weight: 700;
+}
+
+.val-wf-connector-active {
+  color: #d09a45 !important;
+}
+
+/* ==========================================================================
+   3. MAIN THREE-COLUMN WORKSPACE LAYOUT
+   ========================================================================== */
+
+.val-main-layout {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 36px 100px;
+  display: grid;
+  grid-template-columns: 280px 1fr 380px;
+  gap: 22px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* ==========================================================================
+   4. COLUMN 1: DELIVERABLES SIDEBAR
+   ========================================================================== */
+
+.val-col-deliverables {
+  background: #0d0f14;
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  min-height: 600px;
+  box-sizing: border-box;
+}
+
+.val-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(245, 241, 232, 0.06);
+  margin-bottom: 14px;
+}
+
+.val-sidebar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f5f1e8;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.val-sidebar-count {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.45);
+}
+
+.val-deliv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.val-deliv-card {
+  background: #11141b;
+  border: 1px solid rgba(245, 241, 232, 0.07);
+  border-radius: 6px;
+  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+  text-align: left;
+}
+
+.val-deliv-card:hover {
+  background: #151922;
+  border-color: rgba(245, 241, 232, 0.14);
+}
+
+/* Selected Deliverable Gold Treatment */
+.val-deliv-card.is-selected {
+  background: #141822 !important;
+  border: 1px solid rgba(208, 154, 69, 0.75) !important;
+  box-shadow: 0 0 16px rgba(208, 154, 69, 0.14) !important;
+}
+
+.val-deliv-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: rgba(245, 241, 232, 0.04);
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e2b774;
+  flex-shrink: 0;
+}
+
+.val-deliv-icon-box svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.val-deliv-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.val-deliv-num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: rgba(245, 241, 232, 0.4);
+  margin-bottom: 2px;
+}
+
+.val-deliv-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f5f1e8;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.val-deliv-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.val-deliv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+}
+
+.val-deliv-pill.pill-verified {
+  background: rgba(82, 168, 122, 0.12);
+  color: #52a87a;
+  border: 1px solid rgba(82, 168, 122, 0.25);
+}
+
+.val-deliv-pill.pill-verified svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 2.5;
+}
+
+.val-deliv-pill.pill-attention {
+  background: rgba(224, 159, 62, 0.14);
+  color: #e09f3e;
+  border: 1px solid rgba(224, 159, 62, 0.25);
+}
+
+.val-deliv-pill.pill-attention .amber-dot {
+  font-size: 8px;
+}
+
+.val-deliv-trust {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.trust-circle-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #52a87a;
+  color: #52a87a;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.val-deliv-card:nth-child(2) .trust-circle-badge {
+  border-color: #e09f3e;
+  color: #e09f3e;
+}
+
+.trust-label {
+  font-size: 10px;
+  color: rgba(245, 241, 232, 0.5);
+}
+
+.val-deliv-chevron {
+  color: rgba(245, 241, 232, 0.3);
+  display: flex;
+  align-items: center;
+}
+
+.val-deliv-chevron svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+/* Bottom Sidebar Pinned Box: Cross-output consistency */
+.val-deliv-bottom-box {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(245, 241, 232, 0.08);
+}
+
+.val-deliv-bottom-inner {
+  background: rgba(245, 241, 232, 0.02);
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.val-deliv-bottom-inner:hover {
+  background: rgba(245, 241, 232, 0.05);
+}
+
+.val-chain-icon {
+  color: #d09a45;
+  display: flex;
+}
+
+.val-chain-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.val-consistency-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.val-cons-title {
+  font-size: 11.5px;
+  color: rgba(245, 241, 232, 0.7);
+}
+
+.val-cons-status {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #52a87a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.val-cons-status svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.5;
+}
+
+.val-bottom-chevron {
+  color: rgba(245, 241, 232, 0.3);
+  display: flex;
+}
+
+.val-bottom-chevron svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ==========================================================================
+   5. COLUMN 2: CENTER GENERATED RESULT (CREAM PAPER DOCUMENT)
+   ========================================================================== */
+
+.val-col-document {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Document Top Toolbar */
+.val-doc-topbar {
+  background: #11141b;
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.val-doc-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.val-doc-top-icon {
+  color: rgba(245, 241, 232, 0.6);
+  display: flex;
+}
+
+.val-doc-top-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.val-doc-top-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5f1e8;
+}
+
+.val-doc-pill.draft-pill {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(245, 241, 232, 0.85);
+  background: rgba(245, 241, 232, 0.08);
+  border: 1px solid rgba(245, 241, 232, 0.16);
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+.val-doc-version {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.45);
+}
+
+.val-doc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.val-doc-search-input {
+  background: #090a0d;
+  border: 1px solid rgba(245, 241, 232, 0.18);
+  border-radius: 4px;
+  color: #f5f1e8;
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  width: 150px;
+}
+
+.val-zoom-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.val-zoom-select {
+  appearance: none;
+  background: rgba(245, 241, 232, 0.05);
+  border: 1px solid rgba(245, 241, 232, 0.12);
+  border-radius: 4px;
+  color: rgba(245, 241, 232, 0.85);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  padding: 4px 22px 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.val-zoom-select-wrap svg {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+  width: 10px;
+  height: 10px;
+  stroke: rgba(245, 241, 232, 0.6);
+}
+
+.val-doc-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: rgba(245, 241, 232, 0.65);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.val-doc-ctrl-btn:hover {
+  color: #ffffff;
+  background: rgba(245, 241, 232, 0.08);
+}
+
+.val-doc-ctrl-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Document Scroll Area & Cream Sheet */
+.val-doc-scroll-area {
+  background: #0a0b0e;
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 24px;
+  overflow-y: auto;
+  max-height: 860px;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.val-cream-sheet {
+  background: #f6f3eb;
+  color: #141518;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 2px;
+  padding: 44px 50px;
+  position: relative;
+  box-sizing: border-box;
+  transition: transform 0.2s ease;
+}
+
+/* Paper Sheet Header */
+.val-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.val-stamp-classified {
+  border: 1.5px solid #b91c1c;
+  color: #b91c1c;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.val-sheet-meta-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: rgba(20, 21, 24, 0.55);
+  line-height: 1.4;
+}
+
+.sheet-prod-tag {
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.sheet-page-tag {
+  color: rgba(20, 21, 24, 0.45);
+}
+
+/* Sheet Title */
+.val-sheet-title-group {
+  margin-bottom: 20px;
+}
+
+.val-sheet-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: #141518;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.val-sheet-subtitle {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  color: rgba(20, 21, 24, 0.75);
+  margin: 0;
+}
+
+/* Metadata Bar */
+.val-sheet-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(20, 21, 24, 0.15);
+  border-bottom: 1px solid rgba(20, 21, 24, 0.15);
+  padding: 10px 0;
+  margin-bottom: 28px;
+}
+
+.val-sm-cell {
+  display: flex;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.val-sm-lbl {
+  font-weight: 700;
+  color: rgba(20, 21, 24, 0.5);
+  letter-spacing: 0.05em;
+}
+
+.val-sm-val {
+  color: #141518;
+  font-weight: 600;
+}
+
+/* Sheet Sections & Claim Tags */
+.val-sheet-section {
+  margin-bottom: 24px;
+}
+
+.val-section-heading {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #141518;
+  margin: 0 0 10px 0;
+}
+
+.val-sheet-para {
+  font-family: "Georgia", serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #26282d;
+  margin: 0 0 14px 0;
+}
+
+.val-paper-mark-green {
+  background: rgba(82, 168, 122, 0.18);
+  color: #185a35;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.val-claim-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  margin: 0 2px;
+}
+
+.val-claim-pill.chip-verified {
+  background: #d8ece0;
+  color: #1b633a;
+  border: 1px solid rgba(27, 99, 58, 0.3);
+}
+
+.val-claim-pill.chip-attention {
+  background: #fde8c8;
+  color: #92400e;
+  border: 1px solid rgba(146, 64, 14, 0.3);
+}
+
+.val-claim-pill.chip-active {
+  box-shadow: 0 0 0 2px #d09a45;
+}
+
+.chip-status {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.val-sheet-list {
+  font-family: "Georgia", serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #26282d;
+  padding-left: 20px;
+  margin: 0;
+  list-style: none;
+}
+
+.val-sheet-list li {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.val-li-highlighted {
+  background: rgba(224, 159, 62, 0.06);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.val-sheet-numbered {
+  font-family: "Georgia", serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #26282d;
+  padding-left: 24px;
+  margin: 0;
+}
+
+.val-sheet-numbered li {
+  margin-bottom: 6px;
+}
+
+/* Watermark Draft Stamp */
+.val-watermark-draft {
+  position: absolute;
+  bottom: 50px;
+  right: 50px;
+  border: 3px solid rgba(185, 28, 28, 0.45);
+  color: rgba(185, 28, 28, 0.45);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  padding: 4px 18px;
+  text-transform: uppercase;
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+
+/* Sheet Footer */
+.val-sheet-footer {
+  margin-top: 40px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(20, 21, 24, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  color: rgba(20, 21, 24, 0.45);
+  letter-spacing: 0.08em;
+}
+
+.footer-slash {
+  color: rgba(20, 21, 24, 0.25);
+}
+
+/* ==========================================================================
+   6. COLUMN 3: VALIDATION & SECURITY INSPECTOR
+   ========================================================================== */
+
+.val-col-inspector {
+  display: flex;
+  flex-direction: column;
+}
+
+.val-inspector-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.val-card {
+  background: #0d0f14;
+  border: 1px solid rgba(245, 241, 232, 0.08);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.val-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.val-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.val-card-title-group svg {
+  width: 15px;
+  height: 15px;
+  stroke: #d09a45;
+  fill: none;
+}
+
+.val-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f5f1e8;
+  margin: 0;
+}
+
+.val-card-close {
+  background: transparent;
+  border: none;
+  color: rgba(245, 241, 232, 0.35);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.val-card-close:hover {
+  color: #ffffff;
+}
+
+.val-card-close svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
+}
+
+/* 1. Validation Card */
+.val-card-validation {
+  border-color: rgba(208, 154, 69, 0.3);
+}
+
+.val-claim-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.val-claim-tag-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.val-claim-sublabel {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(245, 241, 232, 0.55);
+  letter-spacing: 0.06em;
+}
+
+.val-claim-code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.val-claim-code.code-amber {
+  background: rgba(224, 159, 62, 0.18);
+  color: #e09f3e;
+  border: 1px solid rgba(224, 159, 62, 0.3);
+}
+
+.val-claim-code.code-green {
+  background: rgba(82, 168, 122, 0.18);
+  color: #52a87a;
+  border: 1px solid rgba(82, 168, 122, 0.3);
+}
+
+.val-grounding-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #52a87a;
+  background: rgba(82, 168, 122, 0.1);
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(82, 168, 122, 0.2);
+}
+
+.val-grounding-pill svg {
+  width: 12px;
+  height: 12px;
+}
+
+.val-claim-quote-box {
+  margin-bottom: 12px;
+}
+
+.val-claim-quote-text {
+  font-size: 12.5px;
+  color: #f5f1e8;
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+
+.val-evidence-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.val-ev-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(245, 241, 232, 0.55);
+  text-transform: uppercase;
+}
+
+.val-ev-match {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: rgba(245, 241, 232, 0.4);
+}
+
+.val-evidence-box {
+  background: rgba(82, 168, 122, 0.08);
+  border: 1px solid rgba(82, 168, 122, 0.22);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.val-evidence-text {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.9);
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.val-evidence-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #52a87a;
+}
+
+.val-evidence-status svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 2. Disclosure Control Card */
+.val-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.val-badge-pill {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.val-badge-pill.pill-amber {
+  background: rgba(224, 159, 62, 0.16);
+  color: #e09f3e;
+  border: 1px solid rgba(224, 159, 62, 0.3);
+}
+
+.val-disclosure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.val-disc-item {
+  background: #11141b;
+  border: 1px solid rgba(245, 241, 232, 0.06);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.val-disc-left {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.val-disc-num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.4);
+}
+
+.val-disc-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.val-disc-text {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.85);
+  line-height: 1.4;
+}
+
+.val-disc-text.text-unresolved .unres-tag {
+  color: #ef4444;
+}
+
+.val-disc-edit-preview {
+  font-size: 11px;
+  color: #d09a45;
+  font-style: italic;
+}
+
+.val-disc-select {
+  background: rgba(245, 241, 232, 0.05);
+  border: 1px solid rgba(245, 241, 232, 0.16);
+  border-radius: 4px;
+  color: #f5f1e8;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.val-disc-select.select-disclose {
+  background: rgba(82, 168, 122, 0.12);
+  border-color: rgba(82, 168, 122, 0.35);
+  color: #52a87a;
+}
+
+.val-disc-select.select-withhold {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.val-disc-inline-edit {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.val-disc-input {
+  flex: 1;
+  background: #090a0d;
+  border: 1px solid rgba(245, 241, 232, 0.2);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  color: #f5f1e8;
+  outline: none;
+}
+
+.val-btn-tiny-save {
+  background: #d09a45;
+  border: none;
+  border-radius: 4px;
+  color: #0b0c0e;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* 3. Trust Score Card */
+.val-trust-subnote {
+  font-size: 9.5px;
+  color: rgba(245, 241, 232, 0.45);
+  font-style: italic;
+  max-width: 170px;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.val-trust-score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.val-ts-digits {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.val-ts-big {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 32px;
+  font-weight: 700;
+  color: #52a87a;
+  line-height: 1;
+}
+
+.val-ts-denom {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  color: rgba(245, 241, 232, 0.45);
+}
+
+.val-review-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(208, 154, 69, 0.14);
+  color: #d09a45;
+  border: 1px solid rgba(208, 154, 69, 0.3);
+}
+
+.val-trust-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.val-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+}
+
+.val-bar-name {
+  color: rgba(245, 241, 232, 0.7);
+}
+
+.val-bar-track {
+  height: 6px;
+  background: rgba(245, 241, 232, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.val-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.val-bar-fill.fill-green {
+  background: #52a87a;
+}
+
+.val-bar-fill.fill-amber {
+  background: #e09f3e;
+}
+
+.val-bar-val {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  text-align: right;
+  color: rgba(245, 241, 232, 0.85);
+}
+
+.val-trust-consistency-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(245, 241, 232, 0.06);
+}
+
+.val-trust-consistency-strip svg {
+  width: 13px;
+  height: 13px;
+  stroke: #d09a45;
+}
+
+.val-tc-label {
+  color: rgba(245, 241, 232, 0.6);
+}
+
+.val-tc-status {
+  font-weight: 600;
+  color: #52a87a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.val-tc-status svg {
+  stroke: #52a87a;
+  stroke-width: 2.5;
+}
+
+/* 4. Security Actions Card */
+.val-sec-count-badge {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.val-sec-actions-list {
+  padding-left: 18px;
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(245, 241, 232, 0.85);
+}
+
+.val-sec-actions-list li {
+  margin-bottom: 4px;
+}
+
+.val-sec-footer-link {
+  text-align: right;
+}
+
+.val-sec-footer-link a {
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.5);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.val-sec-footer-link a:hover {
+  color: #d09a45;
+}
+
+/* 5. Transformation Configuration Card */
+.val-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+
+.val-cfg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg-key {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: rgba(245, 241, 232, 0.45);
+}
+
+.cfg-val {
+  font-size: 11.5px;
+  color: rgba(245, 241, 232, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cfg-highlight-green {
+  color: #52a87a !important;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   7. PERSISTENT BOTTOM VALIDATION STATUS BAR
+   ========================================================================== */
+
+.val-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: #090a0d;
+  border-top: 1px solid rgba(245, 241, 232, 0.12);
+  z-index: 999;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.val-bottom-bar-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+/* Left Alert Requirement */
+.val-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.val-alert-icon-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #d09a45;
+  color: #d09a45;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.val-bottom-req-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.req-title {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #d09a45;
+  letter-spacing: 0.06em;
+}
+
+.req-sub {
+  font-size: 11.5px;
+  color: rgba(245, 241, 232, 0.6);
+}
+
+/* Middle Telemetry Statistics */
+.val-bottom-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.val-metric-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.metric-val {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5f1e8;
+}
+
+.metric-val.metric-green {
+  color: #52a87a;
+}
+
+.metric-val.metric-amber {
+  color: #e09f3e;
+}
+
+.metric-lbl {
+  font-size: 10.5px;
+  color: rgba(245, 241, 232, 0.5);
+  white-space: nowrap;
+}
+
+.metric-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(245, 241, 232, 0.1);
+}
+
+.val-metric-cons {
+  align-items: flex-start;
+}
+
+.metric-lbl-compact {
+  font-size: 10.5px;
+  color: rgba(245, 241, 232, 0.5);
+}
+
+.metric-val-compact {
+  font-size: 11px;
+  font-weight: 600;
+  color: #52a87a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-val-compact svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Right Actions */
+.val-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.val-btn-secondary {
+  background: rgba(245, 241, 232, 0.05);
+  border: 1px solid rgba(245, 241, 232, 0.16);
+  border-radius: 6px;
+  color: rgba(245, 241, 232, 0.9);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.val-btn-secondary:hover {
+  background: rgba(245, 241, 232, 0.1);
+  border-color: rgba(245, 241, 232, 0.28);
+  color: #ffffff;
+}
+
+.val-approve-cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.val-btn-approve-primary {
+  background: #d09a45;
+  border: 1px solid #e2b774;
+  border-radius: 6px;
+  color: #0b0c0e;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 10px rgba(208, 154, 69, 0.28);
+  white-space: nowrap;
+}
+
+.val-btn-approve-primary:hover {
+  background: #deb05a;
+  box-shadow: 0 4px 16px rgba(208, 154, 69, 0.42);
+  transform: translateY(-1px);
+}
+
+.val-btn-arrow {
+  font-size: 15px;
+  transition: transform 0.15s ease;
+}
+
+.val-btn-approve-primary:hover .val-btn-arrow {
+  transform: translateX(3px);
+}
+
+.val-cta-subtext {
+  font-size: 9.5px;
+  color: rgba(245, 241, 232, 0.45);
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* Save Changes Toast */
+.val-save-toast {
+  position: absolute;
+  top: -46px;
+  right: 36px;
+  background: #151922;
+  border: 1px solid #52a87a;
+  border-radius: 6px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #52a87a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  animation: fadeInToast 0.2s ease;
+}
+
+.val-save-toast svg {
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes fadeInToast {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   8. RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+
+@media (max-width: 1400px) {
+  .val-main-layout {
+    grid-template-columns: 240px 1fr 340px;
+    gap: 16px;
+    padding: 20px 24px 100px;
+  }
+  .val-bottom-metrics {
+    gap: 10px;
+  }
+  .metric-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .val-subhead-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .val-main-layout {
+    grid-template-columns: 1fr;
+  }
+  .val-col-deliverables {
+    min-height: auto;
+  }
+  .val-bottom-metrics {
+    display: none;
+  }
+}
