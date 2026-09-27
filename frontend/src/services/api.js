@@ -6,7 +6,7 @@
  * and realistic fallback data conforming to backend Pydantic schemas.
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+const API_BASE = "/api";
 
 class ApiService {
   constructor() {

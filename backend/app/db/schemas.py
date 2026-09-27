@@ -251,6 +251,31 @@ class ClaimEntailmentJudgement(BaseModel):
     contradiction_details: Optional[str] = None
 
 
+class ClaimEntailmentBatchItem(BaseModel):
+    """One claim's judgement within a BatchClaimEntailmentJudgement response.
+
+    claim_index MUST echo the 0-based index the claim was given in the
+    request (see grounding_guard.py's batch prompt construction) so the
+    caller can map judgements back to claims positionally even if the model
+    reorders, skips, or (incorrectly) duplicates entries — the caller treats
+    any index it doesn't get a judgement for as missing and falls back to
+    the deterministic mismatch check alone for that claim, same as an
+    outright API failure does for a whole batch.
+    """
+    claim_index: int
+    entailed: bool
+    confidence: float = 0.95
+    reasoning: str
+
+
+class BatchClaimEntailmentJudgement(BaseModel):
+    """Response shape for evaluating several claims in ONE LLM call instead
+    of one call per claim (see grounding_guard.py::verify_content). Each
+    claim is still judged independently against only its own paired source
+    passage — batching changes call count, not what's being judged."""
+    judgements: List[ClaimEntailmentBatchItem]
+
+
 class ConsistencyJudgement(BaseModel):
     is_consistent: bool = True
     contradictions: List[str] = []
@@ -308,6 +333,17 @@ class SensitiveSpanCandidate(BaseModel):
 
 class SensitivityClassificationResult(BaseModel):
     """Full output of the LLM classification pass over a document."""
+    sensitive_spans: List[SensitiveSpanCandidate] = []
+
+
+class SourceUnderstanding(BaseModel):
+    """Combined single-pass output: canonical Fact Graph + sensitivity
+    classification, extracted from the SAME chunk/batch of source text in
+    ONE LLM call instead of two separate chunked passes over the same text
+    (the old fact_graph.py batching + sensitivity_firewall.py chunking were
+    two independent schemes over identical source content). See
+    app/services/source_understanding.py."""
+    fact_graph: FactGraph
     sensitive_spans: List[SensitiveSpanCandidate] = []
 
 

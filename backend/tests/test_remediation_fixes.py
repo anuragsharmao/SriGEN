@@ -258,7 +258,10 @@ def test_fact_graph_extraction_receives_full_untruncated_text(client, fake_llm, 
     })
     assert res.status_code == 200
 
-    fact_graph_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "FactGraph"]
+    # Fact Graph extraction now happens inside the merged Source Understanding
+    # pass (app/services/source_understanding.py) rather than a standalone
+    # "FactGraph"-named call — see that module's docstring for why.
+    fact_graph_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "SourceUnderstanding"]
     # Chunked extraction (Part A4 of the build plan) means a long source now
     # produces one Fact Graph call per chunk rather than a single call — but
     # every character of the source must still reach some chunk's prompt,

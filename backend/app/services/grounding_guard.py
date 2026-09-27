@@ -1,5 +1,6 @@
 """Grounding Guard verification engine for SriGEN."""
 
+import asyncio
 import json
 import logging
 import re
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.core.llm_client import llm_client
 from app.db.schemas import (
+    BatchClaimEntailmentJudgement,
     ClaimEntailmentJudgement,
     ClaimGroundingResult,
     ConsistencyJudgement,
@@ -48,6 +50,23 @@ HINDI_MONTH_MAPPINGS = {
 
 class GroundingGuard:
     """Rigorous dual-pass verification engine combining LLM NLI entailment and literal entity/number matching."""
+
+    # A claim is one sentence (see segment_claims) — usually short — so a
+    # count-based cap is enough on its own; _enforce_prompt_budget in
+    # llm_client.py is still the hard backstop against a pathological batch.
+    # Chosen to keep a single batch call comfortably inside normal context
+    # limits even when every claim carries a full ~1000-char passage.
+    ENTAILMENT_BATCH_SIZE = 12
+    ENTAILMENT_BATCH_MAX_CHARS = 18_000
+
+    BATCH_MODE_INSTRUCTIONS = (
+        "\n\nBATCH MODE: You will be given a NUMBERED LIST of claims, each already "
+        "paired with its own source passage. Evaluate EACH claim independently "
+        "against ONLY its own paired passage — one claim's passage or verdict must "
+        "never influence another claim's judgement. Return exactly one judgement "
+        "object per claim, using the same claim_index given to it in the input. "
+        "Do not skip, merge, reorder, or invent claims."
+    )
 
     def __init__(self):
         if ENTAILMENT_PROMPT_FILE.exists():
@@ -270,6 +289,57 @@ class GroundingGuard:
         top = [p for score, p in scored if score > 0][:k]
         return top if top else passages[:k]
 
+    def _apply_mismatch_override(
+        self,
+        entailed: bool,
+        confidence: float,
+        reasoning: str,
+        mismatches: List[EntityMismatch],
+    ) -> Tuple[bool, float, str]:
+        """Shared step 4 of the original verify_claim: a deterministic NUMBER/DATE
+        mismatch always forces entailed=False regardless of what the LLM said
+        (this is what actually catches factual tampering — see
+        test_faithful_summary_scores_high_and_tampered_summary_scores_low);
+        an ENTITY/LOCATION mismatch just softens confidence. Applied
+        identically whether the judgement came from the single-claim or the
+        batched entailment path, so the two paths can never silently diverge
+        on this rule."""
+        critical_mismatches = [m for m in mismatches if m.mismatch_type in ["NUMBER", "DATE"]]
+        soft_mismatches = [m for m in mismatches if m.mismatch_type in ["ENTITY", "LOCATION"]]
+
+        if critical_mismatches:
+            entailed = False
+            mismatch_summary = "; ".join([m.description for m in critical_mismatches])
+            reasoning = f"FAILED Number/Date Verification: {mismatch_summary} | {reasoning}"
+        elif soft_mismatches:
+            confidence = max(0.0, confidence - 0.3)
+            mismatch_summary = "; ".join([m.description for m in soft_mismatches])
+            reasoning = f"Entity/Location mismatch noted ({mismatch_summary}) [confidence -0.3] | {reasoning}"
+
+        return entailed, confidence, reasoning
+
+    def _prepare_claim(
+        self,
+        claim: str,
+        source_text: str,
+        passages: List[Dict[str, str]],
+        fact_graph: Optional[FactGraph],
+        language: LanguageType,
+    ) -> Tuple[List[EntityMismatch], Optional[str], str]:
+        """Steps 1-2 of verification — deterministic mismatch check and evidence
+        passage selection. Pure Python, no LLM call, so this runs identically
+        (and just as cheaply) whether a claim ends up going through the
+        single-claim or the batched entailment path."""
+        mismatches = self.check_literal_mismatches(
+            claim=claim,
+            source_text=source_text,
+            fact_graph=fact_graph,
+            language=language,
+        )
+        best_passage = self.find_best_source_passage(claim, passages)
+        passage_context = best_passage if best_passage else source_text[:1000]
+        return mismatches, best_passage, passage_context
+
     async def verify_claim(
         self,
         claim: str,
@@ -278,20 +348,14 @@ class GroundingGuard:
         fact_graph: Optional[FactGraph] = None,
         language: LanguageType = LanguageType.ENGLISH,
     ) -> ClaimGroundingResult:
-        """Verify an individual claim using both NLI entailment and literal mismatch checks."""
-        # 1. Deterministic check for numbers/dates/entities
-        mismatches = self.check_literal_mismatches(
-            claim=claim,
-            source_text=source_text,
-            fact_graph=fact_graph,
-            language=language,
+        """Verify a single claim on its own (one LLM call). Kept for callers
+        that only have one claim to check; verify_content below does NOT use
+        this for multi-claim documents — it batches instead (see
+        _judge_entailment_batch) to avoid one entailment call per sentence."""
+        mismatches, best_passage, passage_context = self._prepare_claim(
+            claim, source_text, passages, fact_graph, language
         )
 
-        # 2. Evidence passage selection
-        best_passage = self.find_best_source_passage(claim, passages)
-        passage_context = best_passage if best_passage else source_text[:1000]
-
-        # 3. LLM NLI Entailment evaluation across language boundaries
         user_prompt = (
             f"SOURCE PASSAGE:\n{passage_context}\n\n"
             f"CLAIM TO EVALUATE:\n\"{claim}\"\n\n"
@@ -306,28 +370,14 @@ class GroundingGuard:
                 model=None,
                 stage="verification",
             )
-            entailed = judgement.entailed
-            confidence = judgement.confidence
-            reasoning = judgement.reasoning
+            entailed, confidence, reasoning = judgement.entailed, judgement.confidence, judgement.reasoning
         except Exception as e:
             logger.error(f"Entailment check error: {e}. Defaulting to deterministic match.")
             entailed = len(mismatches) == 0
             confidence = 0.90
             reasoning = "Deterministic match check completed."
 
-        # 4. Soften the hard override:
-        # ONLY NUMBER and DATE mismatches force entailed = False!
-        critical_mismatches = [m for m in mismatches if m.mismatch_type in ["NUMBER", "DATE"]]
-        soft_mismatches = [m for m in mismatches if m.mismatch_type in ["ENTITY", "LOCATION"]]
-
-        if critical_mismatches:
-            entailed = False
-            mismatch_summary = "; ".join([m.description for m in critical_mismatches])
-            reasoning = f"FAILED Number/Date Verification: {mismatch_summary} | {reasoning}"
-        elif soft_mismatches:
-            confidence = max(0.0, confidence - 0.3)
-            mismatch_summary = "; ".join([m.description for m in soft_mismatches])
-            reasoning = f"Entity/Location mismatch noted ({mismatch_summary}) [confidence -0.3] | {reasoning}"
+        entailed, confidence, reasoning = self._apply_mismatch_override(entailed, confidence, reasoning, mismatches)
 
         return ClaimGroundingResult(
             claim_text=claim,
@@ -338,6 +388,136 @@ class GroundingGuard:
             entity_mismatches=mismatches,
         )
 
+    async def _judge_entailment_batch(
+        self, items: List[Tuple[int, str, str]]
+    ) -> Dict[int, Tuple[bool, float, str]]:
+        """One LLM call judging several claims at once. `items` is
+        (claim_index, claim_text, passage_context) tuples. Returns a dict
+        keyed by claim_index — deliberately NOT a plain list — so the caller
+        (_verify_claims_batched) can safely detect an index the model
+        dropped, duplicated, or reordered and fall back to the deterministic
+        check for just that claim, rather than trusting positional order
+        from a batched response.
+
+        On total call failure (API error, validation error), returns an
+        empty dict — every claim in the batch falls back, exactly like a
+        single verify_claim's except-branch does for that one claim today.
+        """
+        if not items:
+            return {}
+
+        blocks = []
+        for idx, claim, passage_context in items:
+            blocks.append(
+                f"--- CLAIM claim_index={idx} ---\n"
+                f"SOURCE PASSAGE:\n{passage_context}\n\n"
+                f"CLAIM TO EVALUATE:\n\"{claim}\"\n"
+            )
+        user_prompt = (
+            "\n".join(blocks)
+            + f"\n\nReturn one judgement per claim above, for claim_index values: "
+            + ", ".join(str(idx) for idx, _, _ in items)
+            + "."
+        )
+
+        try:
+            batch: BatchClaimEntailmentJudgement = await llm_client.structured_completion(
+                system_prompt=self.entailment_prompt + self.BATCH_MODE_INSTRUCTIONS,
+                user_prompt=user_prompt,
+                response_model=BatchClaimEntailmentJudgement,
+                model=None,
+                stage="verification",
+            )
+        except Exception as e:
+            logger.error(f"Batched entailment check error ({len(items)} claims): {e}. "
+                         f"Every claim in this batch defaults to the deterministic match alone.")
+            return {}
+
+        result: Dict[int, Tuple[bool, float, str]] = {}
+        for j in batch.judgements:
+            result[j.claim_index] = (j.entailed, j.confidence, j.reasoning)
+        return result
+
+    def _batch_claim_items(
+        self, items: List[Tuple[int, str, str]]
+    ) -> List[List[Tuple[int, str, str]]]:
+        """Group prepared (index, claim, passage_context) items into batches
+        respecting both ENTAILMENT_BATCH_SIZE and ENTAILMENT_BATCH_MAX_CHARS
+        — same greedy, order-preserving approach as fact_graph.py's
+        _batch_chunks. An oversized single item still gets its own batch
+        rather than being dropped or truncated here (llm_client's
+        _enforce_prompt_budget is the final backstop)."""
+        batches: List[List[Tuple[int, str, str]]] = []
+        current: List[Tuple[int, str, str]] = []
+        current_len = 0
+        for item in items:
+            item_len = len(item[1]) + len(item[2])
+            if current and (
+                len(current) >= self.ENTAILMENT_BATCH_SIZE
+                or current_len + item_len > self.ENTAILMENT_BATCH_MAX_CHARS
+            ):
+                batches.append(current)
+                current, current_len = [], 0
+            current.append(item)
+            current_len += item_len
+        if current:
+            batches.append(current)
+        return batches
+
+    async def _verify_claims_batched(
+        self,
+        claims: List[str],
+        source_text: str,
+        passages: List[Dict[str, str]],
+        fact_graph: Optional[FactGraph],
+        language: LanguageType,
+    ) -> List[ClaimGroundingResult]:
+        """The multi-claim path verify_content actually uses: prepares every
+        claim's deterministic mismatches + best passage locally (no LLM),
+        then judges entailment in a handful of batched calls instead of one
+        call per claim — typically ceil(N / ENTAILMENT_BATCH_SIZE) calls for
+        N claims rather than N. Batches run concurrently (they're
+        independent of each other); results are reassembled in original
+        claim order regardless of batch completion order."""
+        prepared = [
+            self._prepare_claim(claim, source_text, passages, fact_graph, language)
+            for claim in claims
+        ]
+        batch_items = [
+            (i, claims[i], prepared[i][2]) for i in range(len(claims))
+        ]
+        batches = self._batch_claim_items(batch_items)
+
+        batch_results = await asyncio.gather(*[self._judge_entailment_batch(b) for b in batches])
+        judgements: Dict[int, Tuple[bool, float, str]] = {}
+        for br in batch_results:
+            judgements.update(br)
+
+        results: List[ClaimGroundingResult] = []
+        for i, claim in enumerate(claims):
+            mismatches, best_passage, _ = prepared[i]
+            if i in judgements:
+                entailed, confidence, reasoning = judgements[i]
+            else:
+                # Missing from every batch response (dropped by the model, or
+                # the whole batch call failed) — same fallback posture as
+                # verify_claim's except-branch for a single claim.
+                entailed = len(mismatches) == 0
+                confidence = 0.90
+                reasoning = "Deterministic match check completed."
+
+            entailed, confidence, reasoning = self._apply_mismatch_override(entailed, confidence, reasoning, mismatches)
+
+            results.append(ClaimGroundingResult(
+                claim_text=claim,
+                entailed=entailed,
+                confidence=confidence,
+                reasoning=reasoning,
+                matched_source_passage=best_passage,
+                entity_mismatches=mismatches,
+            ))
+        return results
+
     async def verify_content(
         self,
         content: str,
@@ -346,27 +526,29 @@ class GroundingGuard:
         passages: Optional[List[Dict[str, str]]] = None,
         language: LanguageType = LanguageType.ENGLISH,
     ) -> Tuple[float, List[ClaimGroundingResult]]:
-        """Verify an entire deliverable by segmenting into claims and verifying each against source passages."""
+        """Verify an entire deliverable by segmenting into claims and verifying
+        each against source passages. Uses the batched entailment path
+        (_verify_claims_batched) — typically a handful of LLM calls per
+        draft instead of one per sentence — while applying the exact same
+        per-claim deterministic mismatch rules as before."""
         claims = self.segment_claims(content)
         if not claims:
             return 100.0, []
 
         source_passages = passages if passages else [{"passage_id": "P1", "text": source_text}]
 
-        results: List[ClaimGroundingResult] = []
-        for claim in claims:
-            res = await self.verify_claim(
-                claim=claim,
-                source_text=source_text,
-                passages=source_passages,
-                fact_graph=fact_graph,
-                language=language,
-            )
-            results.append(res)
+        results = await self._verify_claims_batched(
+            claims=claims,
+            source_text=source_text,
+            passages=source_passages,
+            fact_graph=fact_graph,
+            language=language,
+        )
 
         entailed_count = sum(1 for r in results if r.entailed)
         grounding_score = (entailed_count / len(results)) * 100.0 if results else 100.0
         return round(grounding_score, 1), results
+
 
     async def check_cross_output_consistency(
         self,

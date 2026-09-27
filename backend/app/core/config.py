@@ -29,6 +29,39 @@ class Settings(BaseSettings):
     # batching (see fact_graph.py), so the reasoning model's lower daily cap
     # isn't a binding constraint for them. See docs/architecture_and_hardening_plan.md §1/§4.
     GROQ_REASONING_MODEL: str = "llama-3.3-70b-versatile"
+
+    # Gemini Developer API (google-genai SDK). Free tier via an AI Studio API
+    # key, no credit card required. Model name checked against Google's own
+    # lineup docs as of this writing (Sept 2026) — gemini-2.0-flash is already
+    # shut down and gemini-2.5-* is scheduled to shut down 16 Oct 2026, so
+    # gemini-3.1-flash-lite (GA/stable since May 2026, no shutdown scheduled)
+    # is the safer default. Re-verify against
+    # https://ai.google.dev/gemini-api/docs/models before a long-lived deploy —
+    # Google's free-tier lineup moves fast.
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_DEFAULT_MODEL: str = "gemini-3.1-flash-lite"
+    # Used for the same accuracy-critical stages GROQ_REASONING_MODEL is used
+    # for (Fact Graph / Sensitivity / Source Understanding) when the Gemini
+    # backend is active — see the REASONING_MODEL property below. Same model
+    # as GEMINI_DEFAULT_MODEL for now; split it out (e.g. to gemini-3-flash-
+    # preview) if/when you want a stronger model on just those stages.
+    GEMINI_REASONING_MODEL: str = "gemini-3.1-flash-lite"
+
+    # Source Understanding (merged Fact Graph + Sensitivity Classification —
+    # see app/services/source_understanding.py). Both jobs now read the same
+    # chunk/batch of source text in ONE structured-output call instead of two
+    # separate chunked passes. Chunk/batch size is kept small and, for now,
+    # equal to each other (one chunk per call, no re-batching) because this
+    # is running against Groq's FREE tier: smaller requests are safer against
+    # a free-tier reasoning model's per-request token limits, at the cost of
+    # more (but still fully parallel, via asyncio.gather) calls than a paid
+    # tier would need. Once off the free tier, raise
+    # SOURCE_UNDERSTANDING_BATCH_MAX_CHARS well above SOURCE_CHUNK_TARGET_CHARS
+    # to fold several chunks into fewer calls again (same mechanism
+    # fact_graph.py's original BATCH_MAX_CHARS used).
+    SOURCE_CHUNK_TARGET_CHARS: int = 3000
+    SOURCE_CHUNK_OVERLAP_CHARS: int = 250
+    SOURCE_UNDERSTANDING_BATCH_MAX_CHARS: int = 3000
     # Multimodal ingestion models (overridable via env; verify against
     # https://console.groq.com/docs/vision and /docs/speech-to-text before relying
     # on these defaults long-term, since Groq's available model list changes).
@@ -170,13 +203,43 @@ class Settings(BaseSettings):
     OPERATOR_BOOTSTRAP_USERNAME: Optional[str] = None
     OPERATOR_BOOTSTRAP_PASSWORD: Optional[str] = None
 
-    # Pluggable LLM backend selection (item 4). "groq" is the only implemented
-    # backend today; the LLMBackend interface in app/core/llm_client.py exists
+    # Pluggable LLM backend selection (item 4). "groq" and "gemini" are both
+    # implemented; the LLMBackend interface in app/core/llm_client.py exists
     # so a self-hosted/VPC-scoped backend can be added later without touching
     # orchestrator/adapter/service code.
-    LLM_BACKEND: str = "groq"
+    #
+    # LLM_BACKEND is the primary backend every call is tried against first.
+    # LLM_FALLBACK_BACKEND, if set to a different backend name, is tried
+    # automatically whenever the primary raises LLMUnavailableError (missing/
+    # invalid key, rate limit exhausted, 5xx, connection failure) — see
+    # FallbackBackend in llm_client.py. Set LLM_FALLBACK_BACKEND to "" or the
+    # same value as LLM_BACKEND to disable fallback entirely.
+    LLM_BACKEND: str = "gemini"
+    LLM_FALLBACK_BACKEND: Optional[str] = "groq"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def REASONING_MODEL(self) -> str:
+        """The reasoning-tier model name for whichever backend LLM_BACKEND
+        currently points at — used by the accuracy-critical stages (Fact
+        Graph, Sensitivity Firewall, Source Understanding) instead of each of
+        those call sites hardcoding `settings.GROQ_REASONING_MODEL` directly.
+
+        Those call sites used to pass the Groq model name explicitly to
+        `llm_client.structured_completion(model=...)`, which OVERRIDES
+        whatever backend-internal default `target_model = model or
+        settings.GROQ_DEFAULT_MODEL` would otherwise pick — so switching
+        LLM_BACKEND alone did nothing for them; they'd keep sending a Groq
+        model name straight to whichever backend was actually active and
+        fail every call. This property is what they should pass instead.
+        """
+        backend = (self.LLM_BACKEND or "gemini").strip().lower()
+        if backend == "groq":
+            return self.GROQ_REASONING_MODEL
+        if backend == "gemini":
+            return self.GEMINI_REASONING_MODEL
+        return self.GROQ_REASONING_MODEL
 
     @property
     def CORS_ORIGINS(self) -> List[str]:

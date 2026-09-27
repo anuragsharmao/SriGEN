@@ -125,7 +125,7 @@ class FactGraphService:
                 system_prompt=self.system_prompt,
                 user_prompt=user_prompt,
                 response_model=FactGraph,
-                model=settings.GROQ_REASONING_MODEL,
+                model=settings.REASONING_MODEL,
                 stage="fact_graph",
             )
         except LLMUnavailableError:
@@ -183,7 +183,7 @@ class FactGraphService:
                 system_prompt=self.system_prompt,
                 user_prompt=user_prompt,
                 response_model=FactGraph,
-                model=settings.GROQ_REASONING_MODEL,
+                model=settings.REASONING_MODEL,
                 stage="fact_graph",
             )
         except LLMUnavailableError:

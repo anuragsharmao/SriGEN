@@ -24,10 +24,13 @@ import app.services.content_refiner as content_refiner_module
 import app.services.fact_fixer as fact_fixer_module
 import app.services.fact_graph as fact_graph_module
 import app.services.grounding_guard as grounding_guard_module
+import app.services.source_understanding as source_understanding_module
 from app.core import llm_client as llm_client_module
 from app.core.llm_client import LLMUnavailableError
 from app.db.database import Base, SessionLocal, engine, get_db
 from app.db.schemas import (
+    BatchClaimEntailmentJudgement,
+    ClaimEntailmentBatchItem,
     ClaimEntailmentJudgement,
     ConsistencyJudgement,
     ContentRefineResult,
@@ -41,6 +44,7 @@ from app.db.schemas import (
     PolicyComplianceJudgement,
     PresentationPackage,
     SensitivityClassificationResult,
+    SourceUnderstanding,
     Slide,
     SubtitleCue,
     VideoPackage,
@@ -134,11 +138,55 @@ class FakeLLMClient:
             # tests stay deterministic.
             return SensitivityClassificationResult(sensitive_spans=[])
 
+        if name == "SourceUnderstanding":
+            # Merged Fact Graph + Sensitivity pass (source_understanding.py).
+            # Same deterministic fact graph as the standalone "FactGraph" case
+            # above, and same deliberately-empty semantic sensitivity layer as
+            # the standalone "SensitivityClassificationResult" case above —
+            # the regex layer still covers the test suite's sensitivity cases,
+            # so this fake stays fully consistent with both of those.
+            return SourceUnderstanding(
+                fact_graph=FactGraph(
+                    source_title="Test Incident Report",
+                    summary="A test incident affecting several systems was reported and contained.",
+                    entities=[
+                        FactEntity(name="Sector-7 Facility", category="LOCATION", native_forms={"hi": "सेक्टर-7 सुविधा"}),
+                        FactEntity(name="Regional Response Team", category="ORG", native_forms={}),
+                    ],
+                    facts=[
+                        FactStatement(statement="An incident was detected and contained.", category="KEY_FACT"),
+                        FactStatement(statement="Response teams restored affected systems.", category="RESPONSE_ACTIONS"),
+                    ],
+                    numbers_and_dates=[
+                        FactNumberDate(value="24", unit="systems", context="systems affected by the incident"),
+                    ],
+                    policy_constraints=[],
+                ),
+                sensitive_spans=[],
+            )
+
         if name == "ClaimEntailmentJudgement":
             # Deliberately always "entailed": the deterministic NUMBER/DATE hard
             # override in grounding_guard.verify_claim is what actually catches
             # factual tampering in tests, independent of this fake judgement.
             return ClaimEntailmentJudgement(entailed=True, confidence=0.95, reasoning="Entailed by source context.")
+
+        if name == "BatchClaimEntailmentJudgement":
+            # Same deliberate always-"entailed" stance as the single-claim fake
+            # above (the deterministic NUMBER/DATE override is what tests rely
+            # on to catch tampering) — just applied to every claim_index the
+            # batch prompt actually asked about, so the fake genuinely
+            # exercises the batching path instead of trivially short-circuiting.
+            indices = [int(m) for m in re.findall(r"claim_index=(\d+)", user_prompt)]
+            return BatchClaimEntailmentJudgement(
+                judgements=[
+                    ClaimEntailmentBatchItem(
+                        claim_index=idx, entailed=True, confidence=0.95,
+                        reasoning="Entailed by source context.",
+                    )
+                    for idx in indices
+                ]
+            )
 
         if name == "ConsistencyJudgement":
             return ConsistencyJudgement(
@@ -314,6 +362,7 @@ def fake_llm(monkeypatch):
     monkeypatch.setattr(llm_client_module, "llm_client", fake_llm_client)
     monkeypatch.setattr(grounding_guard_module, "llm_client", fake_llm_client)
     monkeypatch.setattr(fact_graph_module, "llm_client", fake_llm_client)
+    monkeypatch.setattr(source_understanding_module, "llm_client", fake_llm_client)
     monkeypatch.setattr(base_module, "llm_client", fake_llm_client)
     monkeypatch.setattr(fact_fixer_module, "llm_client", fake_llm_client)
     monkeypatch.setattr(content_refiner_module, "llm_client", fake_llm_client)

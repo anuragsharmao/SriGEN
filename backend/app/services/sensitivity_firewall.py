@@ -3,11 +3,12 @@ typed placeholder redaction for source-document transparency logging, and
 deterministic (no second LLM pass) disclosure-decision resolution.
 """
 
+import asyncio
 import logging
 import re
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.db.schemas import (
@@ -16,6 +17,7 @@ from app.db.schemas import (
     SensitiveSpanCandidate,
     SensitivityClassificationResult,
 )
+from app.services.chunking import chunk_document
 
 logger = logging.getLogger("srigen.sensitivity_firewall")
 PROMPT_FILE = Path(__file__).resolve().parent.parent / "prompts" / "sensitivity_classification_prompt.txt"
@@ -54,36 +56,74 @@ class SensitivityFirewall:
             )
         )
 
-        # Delimited so ingested content can never be mistaken for instructions
-        # (prompt-injection resistance) — the classification prompt itself
-        # states the same rule explicitly; see sensitivity_classification_prompt.txt.
-        user_prompt = f"--- DOCUMENT ---\n{text}\n--- END DOCUMENT ---"
+        # Classify bounded chunks so a large document cannot exceed the model's
+        # per-request token limit. Exact-text validation below still checks
+        # every returned span against the complete original document.
+        # Chunks are classified IN PARALLEL (asyncio.gather) rather than one
+        # at a time — this path is still used standalone (e.g. the
+        # output-side disclosure scan on generated draft text, and any
+        # caller of apply_redaction/classify_with_llm that doesn't pass
+        # precomputed spans from the merged Source Understanding pass — see
+        # app/services/source_understanding.py for the source-side merge).
+        chunks = chunk_document(
+            text,
+            target_chars=settings.SOURCE_CHUNK_TARGET_CHARS,
+            overlap_chars=settings.SOURCE_CHUNK_OVERLAP_CHARS,
+        )
 
-        try:
-            result: SensitivityClassificationResult = await llm_client.structured_completion(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                response_model=SensitivityClassificationResult,
-                model=settings.GROQ_REASONING_MODEL,
-            )
-        except Exception as e:
-            logger.error(f"LLM sensitivity classification failed: {e}. Proceeding with regex-only results — DEGRADED.")
-            return [], True
+        async def _classify_chunk(chunk: Dict) -> Tuple[List[SensitiveSpanCandidate], bool]:
+            user_prompt = f"--- DOCUMENT CHUNK ---\n{chunk['text']}\n--- END DOCUMENT CHUNK ---"
+            try:
+                result: SensitivityClassificationResult = await llm_client.structured_completion(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    response_model=SensitivityClassificationResult,
+                    model=settings.REASONING_MODEL,
+                )
+                return result.sensitive_spans, False
+            except Exception as e:
+                logger.error(
+                    f"LLM sensitivity classification failed for chunk {chunk['chunk_index']}: {e}. "
+                    "Proceeding with regex-only results for that chunk — DEGRADED."
+                )
+                return [], True
+
+        chunk_results = await asyncio.gather(*[_classify_chunk(c) for c in chunks])
+        candidates: List[SensitiveSpanCandidate] = []
+        degraded = False
+        for spans, chunk_degraded in chunk_results:
+            candidates.extend(spans)
+            degraded = degraded or chunk_degraded
 
         # Validate: exact_text must actually appear verbatim in the source.
         # Drop (and log) any hallucinated span rather than crashing or silently
         # trying to redact text that doesn't exist.
         validated: List[SensitiveSpanCandidate] = []
-        for span in result.sensitive_spans:
+        for span in candidates:
             if span.exact_text and span.exact_text in text:
                 validated.append(span)
             else:
                 logger.warning(f"Dropped non-verbatim LLM span candidate: {span.exact_text!r}")
-        return validated, False
+        return validated, degraded
 
-    async def _collect_candidate_spans(self, text: str) -> Tuple[List[Dict], bool]:
+    async def _collect_candidate_spans(
+        self,
+        text: str,
+        precomputed_llm_spans: Optional[Tuple[List[SensitiveSpanCandidate], bool]] = None,
+    ) -> Tuple[List[Dict], bool]:
         """Regex + LLM span collection, de-duplicated by overlap. Shared by both
         the source-side redaction pass and the output-side disclosure scan.
+
+        `precomputed_llm_spans`, when given, is an (llm_spans, degraded) pair
+        already produced elsewhere for this exact text — e.g. the merged
+        Source Understanding pass (app/services/source_understanding.py),
+        which extracts sensitivity spans in the SAME call as the Fact Graph
+        instead of this method calling `classify_with_llm` a second time
+        over the same source text. When omitted (the output-side disclosure
+        scan on generated draft text always omits it, since that text was
+        never part of the source-side pass), this method falls back to
+        calling `classify_with_llm` itself, unchanged from before.
+
         Returns (accepted_spans, degraded)."""
         candidate_spans: List[Dict] = []
 
@@ -113,7 +153,10 @@ class SensitivityFirewall:
                     })
 
         # --- Layer 2: LLM semantic pass ---
-        llm_spans, degraded = await self.classify_with_llm(text)
+        if precomputed_llm_spans is not None:
+            llm_spans, degraded = precomputed_llm_spans
+        else:
+            llm_spans, degraded = await self.classify_with_llm(text)
         for span in llm_spans:
             start_search = 0
             while True:
@@ -180,12 +223,22 @@ class SensitivityFirewall:
         self,
         text: str,
         audience: AudienceType = AudienceType.GENERAL_PUBLIC,
+        precomputed_llm_spans: Optional[Tuple[List[SensitiveSpanCandidate], bool]] = None,
     ) -> Tuple[str, List[SecurityActionItem], Dict[str, str], bool]:
         """Scan the SOURCE document and replace sensitive terms with typed
         placeholders. Used only for the source-document transparency log
         (`SecurityActionModel` / `SourceDocumentModel.redacted_text`) — NOT fed
         into generation (generation reads the raw source text directly; see
         `app/adapters/base.py`).
+
+        `precomputed_llm_spans`: pass the (sensitive_spans, degraded) result
+        already produced by the merged Source Understanding pass
+        (source_understanding_service.extract) for this same source text, so
+        this call reuses that LLM output instead of re-running
+        `classify_with_llm` a second time over the same document. Omit it
+        (the default) to keep the old standalone behavior — this is what
+        `routes_sensitivity.py`'s standalone endpoint and existing tests
+        still do, and it is unchanged.
 
         Returns:
             redacted_text: Text with placeholders like [LOCATION_1], [UNIT_NAME_1]
@@ -200,7 +253,9 @@ class SensitivityFirewall:
         placeholder_map: Dict[str, str] = {}
         category_counters: Dict[str, int] = {}
 
-        accepted_spans, degraded = await self._collect_candidate_spans(text)
+        accepted_spans, degraded = await self._collect_candidate_spans(
+            text, precomputed_llm_spans=precomputed_llm_spans
+        )
 
         # --- Two-Pass Replacement: Reading-Order Numbering & Safe Replacement ---
         entity_placeholders: Dict[Tuple[str, str], str] = {}

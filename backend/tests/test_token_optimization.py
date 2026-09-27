@@ -10,6 +10,7 @@ See docs/token_optimization_plan.md for the design rationale.
 import asyncio
 
 from app.services.fact_graph import _batch_chunks, _ChunkLike, fact_graph_service
+from app.services.grounding_guard import grounding_guard
 from app.services.text_cleaning import clean_text
 
 
@@ -289,3 +290,100 @@ def test_no_confidence_threshold_or_generation_mode_remnants_in_orchestrator():
     assert "GenerationMode" not in source
     assert "generation_mode" not in source
     assert "_LOW_CONFIDENCE_DISCLOSE_THRESHOLD" not in source
+
+
+# ---------------------------------------------------------------------------
+# Claim entailment batching (grounding_guard.py::verify_content) — one LLM
+# call per BATCH of claims instead of one call per claim/sentence. See
+# GroundingGuard._batch_claim_items / _judge_entailment_batch /
+# _verify_claims_batched.
+# ---------------------------------------------------------------------------
+
+def _make_multi_sentence_draft(n_sentences: int) -> str:
+    return " ".join(f"This is factual sentence number {i} about the incident." for i in range(n_sentences))
+
+
+def test_batch_claim_items_groups_by_count_cap():
+    items = [(i, f"claim {i}", "short passage") for i in range(15)]
+    batches = grounding_guard._batch_claim_items(items)
+    assert len(batches) == 2  # ceil(15 / ENTAILMENT_BATCH_SIZE=12)
+    assert [i for b in batches for i, _, _ in b] == list(range(15))  # order preserved, nothing dropped
+
+
+def test_batch_claim_items_respects_char_cap_even_under_count_cap():
+    # 10 items well under the count cap (12) but each ~4000 chars -> forced
+    # into multiple batches by ENTAILMENT_BATCH_MAX_CHARS (18_000).
+    items = [(i, "x" * 2000, "y" * 2000) for i in range(10)]
+    batches = grounding_guard._batch_claim_items(items)
+    assert len(batches) > 1
+    for b in batches:
+        total_chars = sum(len(c) + len(p) for _, c, p in b)
+        assert total_chars <= grounding_guard.ENTAILMENT_BATCH_MAX_CHARS
+
+
+def test_verify_content_uses_far_fewer_calls_than_one_per_claim(fake_llm):
+    """The actual regression test for the fix: a draft with many sentences
+    must NOT generate one entailment LLM call per sentence."""
+    draft = _make_multi_sentence_draft(15)
+    source = "The incident affected several systems and was fully contained by response teams."
+
+    score, results = asyncio.run(grounding_guard.verify_content(content=draft, source_text=source))
+
+    assert len(results) == 15  # every claim still gets its own judged result
+    batch_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "BatchClaimEntailmentJudgement"]
+    single_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "ClaimEntailmentJudgement"]
+    assert single_calls == [], "multi-claim content must go through the batched path, not the per-claim one"
+    assert len(batch_calls) == 2, f"expected ceil(15/12)=2 batch calls, got {len(batch_calls)}"
+
+
+def test_verify_content_single_claim_still_works_via_one_batch_call(fake_llm):
+    """Edge case: a one-sentence draft still goes through the batch path
+    (a batch of size 1), not the standalone verify_claim path — keeping
+    exactly one code path responsible for calling the entailment LLM from
+    verify_content."""
+    score, results = asyncio.run(grounding_guard.verify_content(
+        content="A single factual sentence about the incident occurred.",
+        source_text="A single factual sentence about the incident occurred.",
+    ))
+    assert len(results) == 1
+    batch_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "BatchClaimEntailmentJudgement"]
+    assert len(batch_calls) == 1
+
+
+def test_batched_entailment_still_enforces_number_mismatch_override(fake_llm):
+    """Acceptance-level regression: the deterministic NUMBER-mismatch override
+    (the thing that actually catches factual tampering) must still fire
+    through the batched path exactly as it did through the old per-claim
+    loop — even though the fake LLM's batch judgement says entailed=True for
+    every claim, a tampered number must still force that one claim False."""
+    source = (
+        "An incident affected 24 systems at the facility. Response teams restored "
+        "all systems by evening. No further disruption has been reported since containment."
+    )
+    tampered = (
+        "The incident affected 42 systems at the facility. "
+        "Response teams restored all systems by evening. "
+        "No further disruption has been reported since containment."
+    )
+    score, results = asyncio.run(grounding_guard.verify_content(content=tampered, source_text=source))
+    assert score < 70.0
+    assert not results[0].entailed
+    assert "42" in " ".join(m.description for m in results[0].entity_mismatches)
+    # And this all still happened inside ONE batch call, not three.
+    batch_calls = [c for c in fake_llm.structured_calls if c["model_name"] == "BatchClaimEntailmentJudgement"]
+    assert len(batch_calls) == 1
+
+
+def test_batch_entailment_failure_falls_back_per_claim_without_crashing(fake_llm):
+    """If the batched entailment call fails outright, every claim in that
+    batch must fall back to the deterministic-only judgement (same posture
+    as the old per-claim except-branch) rather than raising or silently
+    dropping claims."""
+    fake_llm.should_fail = True
+    score, results = asyncio.run(grounding_guard.verify_content(
+        content=_make_multi_sentence_draft(3),
+        source_text="Some source text with matching factual content.",
+    ))
+    assert len(results) == 3
+    for r in results:
+        assert r.reasoning == "Deterministic match check completed."

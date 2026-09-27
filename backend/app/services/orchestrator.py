@@ -31,11 +31,11 @@ from app.db.schemas import (
     SecurityActionItem,
 )
 from app.services.content_packages import flatten_package
-from app.services.fact_graph import fact_graph_service
 from app.services.grounding_guard import grounding_guard
 from app.services.ingestion import ingest_document
 from app.services.resolver import resolver
 from app.services.sensitivity_firewall import firewall
+from app.services.source_understanding import source_understanding_service
 from app.services.trust_score import trust_score_calculator
 from app.core.config import settings
 
@@ -141,44 +141,35 @@ class GenerationOrchestrator:
             additional_files=additional_files,
         )
 
-        # 2. CONTROL: Sensitivity Firewall — SOURCE-SIDE scan. This produces the
-        # source document's transparency log (Security Actions Log) only.
-        # Generation below reads the RAW source text directly, never this
-        # redacted/placeholder text (see app/adapters/base.py).
-        redacted_text, security_actions_items, placeholder_map, source_degraded = await firewall.apply_redaction(
-            text=doc_data["raw_text"],
-            audience=request.audience,
-        )
-        source_value_index = {
-            (act.category, act.original_value.strip().lower()) for act in security_actions_items
-        }
-
-        # Persist Source Document
+        # 2. Persist Source Document. redacted_text/placeholder_map/
+        # llm_classification_degraded depend on the merged Source
+        # Understanding pass below, which in turn needs this row's id (for
+        # the chunk rows' source_id FK) — so this is created with
+        # placeholder values here and updated once those are known (same
+        # pattern the placeholder_native_map update below already used).
         source_doc = SourceDocumentModel(
             filename=doc_data["filename"],
             file_type=doc_data["file_type"],
             detected_language=doc_data["detected_language"],
             raw_text=doc_data["raw_text"],
-            redacted_text=redacted_text,
-            placeholder_map_json=json.dumps(placeholder_map),
+            redacted_text=doc_data["raw_text"],
+            placeholder_map_json="{}",
             placeholder_native_map_json="{}",
             source_hash=doc_data["source_hash"],
             content_provenance_note=doc_data.get("content_provenance_note"),
-            llm_classification_degraded=source_degraded,
+            llm_classification_degraded=False,
         )
         db.add(source_doc)
         db.flush()
 
         # 2b. Chunk the raw source text once, deterministically (no LLM call —
         # see app/services/chunking.py) and persist as DocumentChunkModel
-        # rows. This is the retrieval layer that both the federated Fact
-        # Graph extraction below (Part A4) and Grounding Guard's per-claim
-        # passage matching (Part A5) run against, and what lets Refine Mode
-        # retrieve evidence server-side by draft_id instead of the client
-        # resending the full source text (Part B). A document under
-        # chunk_document's target_chars comes back as exactly one chunk, so
-        # this is a no-op behavior change for every document that already
-        # worked correctly before this fix.
+        # rows. This is the retrieval layer that the merged Source
+        # Understanding pass below, Grounding Guard's per-claim passage
+        # matching (Part A5), and Refine Mode all run against. A document
+        # under chunk_document's target_chars comes back as exactly one
+        # chunk, so this is a no-op behavior change for every document that
+        # already worked correctly before this fix.
         #
         # clean_text() strips unambiguous page-number lines before chunking
         # (see app/services/text_cleaning.py for why it deliberately does
@@ -186,7 +177,11 @@ class GenerationOrchestrator:
         # doesn't burn tokens on every downstream LLM call. It only affects
         # what gets chunked — doc_data["raw_text"] itself is left untouched
         # for redaction and citation, which need the original text.
-        chunk_dicts = chunk_document(clean_text(doc_data["raw_text"]))
+        chunk_dicts = chunk_document(
+            clean_text(doc_data["raw_text"]),
+            target_chars=settings.SOURCE_CHUNK_TARGET_CHARS,
+            overlap_chars=settings.SOURCE_CHUNK_OVERLAP_CHARS,
+        )
         source_chunks: List[DocumentChunkModel] = []
         for cd in chunk_dicts:
             chunk_model = DocumentChunkModel(
@@ -200,6 +195,45 @@ class GenerationOrchestrator:
             )
             db.add(chunk_model)
             source_chunks.append(chunk_model)
+        db.flush()
+        # Release the SQLite write lock before awaiting the LLM calls below.
+        # Holding this transaction open across network requests blocks other
+        # requests from inserting their source documents.
+        db.commit()
+
+        # 3. UNDERSTAND + CONTROL, merged: Canonical Fact Graph AND the
+        # source-side Sensitivity Firewall scan in ONE chunked/batched LLM
+        # pass over `source_chunks` (see app/services/source_understanding.py)
+        # instead of two independent chunked passes over the same text —
+        # fact_graph.py's federated extraction used to run separately from
+        # sensitivity_firewall.py's own internal re-chunking of the raw text.
+        # Federated extraction is unchanged in shape: a single-chunk document
+        # takes the original single-call path; a multi-chunk document
+        # extracts/classifies each batch in parallel and merges the partials.
+        understanding, source_degraded = await source_understanding_service.extract(source_chunks)
+        fact_graph = understanding.fact_graph
+
+        # Sensitivity Firewall — SOURCE-SIDE redaction. Reuses the sensitive
+        # spans just extracted above (`precomputed_llm_spans`) instead of
+        # calling classify_with_llm a second time over the same source text;
+        # this produces the source document's transparency log (Security
+        # Actions Log) only. Generation below reads the RAW source text
+        # directly, never this redacted/placeholder text (see
+        # app/adapters/base.py).
+        redacted_text, security_actions_items, placeholder_map, redaction_degraded = await firewall.apply_redaction(
+            text=doc_data["raw_text"],
+            audience=request.audience,
+            precomputed_llm_spans=(understanding.sensitive_spans, source_degraded),
+        )
+        source_degraded = source_degraded or redaction_degraded
+        source_value_index = {
+            (act.category, act.original_value.strip().lower()) for act in security_actions_items
+        }
+
+        source_doc.redacted_text = redacted_text
+        source_doc.placeholder_map_json = json.dumps(placeholder_map)
+        source_doc.llm_classification_degraded = source_degraded
+        db.add(source_doc)
         db.flush()
 
         # Persist Security Action transparency logs (source-side findings)
@@ -218,13 +252,6 @@ class GenerationOrchestrator:
             )
             db.add(db_act)
         db.flush()
-
-        # 3. UNDERSTAND: Canonical Fact Graph (Single Source of Truth).
-        # Federated per-chunk extraction (Part A4): a single-chunk document
-        # takes the exact original single-call path; a multi-chunk document
-        # extracts each chunk in parallel and merges the partials, so no
-        # single LLM call ever carries the whole large document.
-        fact_graph = await fact_graph_service.extract_fact_graph(source_chunks)
 
         fact_graph_record = FactGraphModel(
             source_id=source_doc.id,
