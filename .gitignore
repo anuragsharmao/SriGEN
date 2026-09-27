@@ -28,6 +28,8 @@ dist/
 *.log
 
 # Local databases and generated uploads
+*.db-shm 
+*.db-wal
 *.db
 *.sqlite
 *.sqlite3
