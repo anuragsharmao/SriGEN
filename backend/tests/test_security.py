@@ -216,6 +216,54 @@ def test_degraded_flag_false_under_normal_operation(client):
     assert res.json()["llm_classification_degraded"] is False
 
 
+def test_gemini_schema_is_sanitized_for_complex_structured_outputs():
+    from app.core.llm_client import _gemini_response_schema
+    from app.db.schemas import SourceUnderstanding
+
+    schema = _gemini_response_schema(SourceUnderstanding)
+    assert schema is None
+
+
+def test_gemini_uses_prompt_schema_for_nested_structured_outputs(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from pydantic import BaseModel
+    from app.core import llm_client as llm_module
+
+    class NestedValue(BaseModel):
+        value: str
+
+    class NestedResponse(BaseModel):
+        nested: NestedValue
+
+    request_config = {}
+
+    def capture_config(**kwargs):
+        request_config.update(kwargs)
+        return kwargs
+
+    async def no_wait():
+        return None
+
+    monkeypatch.setattr(
+        llm_module,
+        "genai_types",
+        SimpleNamespace(GenerateContentConfig=capture_config),
+    )
+    monkeypatch.setattr(llm_module._gemini_request_pacer, "wait_turn", no_wait)
+
+    generate_content = AsyncMock(return_value=SimpleNamespace(text='{"nested":{"value":"ok"}}'))
+    backend = llm_module.GeminiBackend()
+    backend.client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate_content)))
+
+    result = asyncio.run(backend.structured_completion("Extract data", "Input", NestedResponse))
+
+    assert result.nested.value == "ok"
+    assert "response_schema" not in request_config
+    assert "NestedValue" in request_config["system_instruction"]
+
+
 # ---------------------------------------------------------------------------
 # Item 6: ledger append locking / concurrency safety
 # ---------------------------------------------------------------------------
@@ -279,13 +327,21 @@ def test_debug_defaults_to_false():
 # Item 4: pluggable LLM backend abstraction exists
 # ---------------------------------------------------------------------------
 
-def test_llm_backend_is_pluggable_and_groq_is_default():
-    from app.core.llm_client import GroqBackend, LLMBackend, LLMClient
+def test_llm_backend_matches_configured_primary_and_fallback():
+    from app.core.config import settings
+    from app.core.llm_client import FallbackBackend, GeminiBackend, GroqBackend, LLMBackend, LLMClient
 
     assert issubclass(GroqBackend, LLMBackend)
     client_instance = LLMClient()
     assert isinstance(client_instance._backend, LLMBackend)
-    assert isinstance(client_instance._backend, GroqBackend)
+
+    if settings.LLM_BACKEND == "groq":
+        assert isinstance(client_instance._backend, GroqBackend)
+    elif settings.LLM_BACKEND == "gemini":
+        if settings.LLM_FALLBACK_BACKEND and settings.LLM_FALLBACK_BACKEND != settings.LLM_BACKEND:
+            assert isinstance(client_instance._backend, FallbackBackend)
+        else:
+            assert isinstance(client_instance._backend, GeminiBackend)
 
 
 def test_unknown_llm_backend_raises_clear_error(monkeypatch):

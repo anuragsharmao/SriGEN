@@ -126,20 +126,25 @@ def _enforce_prompt_budget(prompt: str, stage: str, max_chars: int = 40_000) -> 
     return prompt
 
 
-def _gemini_response_schema(response_model: Type[BaseModel]) -> dict:
+def _gemini_response_schema(response_model: Type[BaseModel]) -> Optional[dict]:
     """Return a Developer API-compatible schema for constrained JSON output."""
+    schema = response_model.model_json_schema()
+    schema_json = json.dumps(schema)
+    if any(marker in schema_json for marker in ("$defs", "$ref", "anyOf", "oneOf", "allOf")):
+        return None
+
     def sanitize(value):
         if isinstance(value, dict):
             return {
                 key: sanitize(item)
                 for key, item in value.items()
-                if key not in {"additionalProperties", "title", "default"}
+                if key not in {"title", "default", "additionalProperties", "description", "examples"}
             }
         if isinstance(value, list):
             return [sanitize(item) for item in value]
         return value
 
-    return sanitize(response_model.model_json_schema())
+    return sanitize(schema)
 
 
 class LLMUnavailableError(RuntimeError):
@@ -538,34 +543,41 @@ class GeminiBackend(LLMBackend):
         model: Optional[str] = None,
         stage: str = "generation",
     ) -> BaseModel:
-        """Uses Gemini's native response_schema constrained decoding (pass
-        the Pydantic model straight through) rather than embedding the JSON
-        schema in the prompt text the way GroqBackend has to — Gemini
-        enforces the schema at generation time. Still keeps the same bounded
-        self-correction retry loop as GroqBackend for defensiveness, since
-        constrained decoding narrows but doesn't eliminate the chance of a
-        response that fails this project's own Pydantic validation
-        (stricter field-level rules, cross-field checks, etc.)."""
+        """Use native constrained decoding for simple schemas and JSON mode
+        with prompt guidance for complex Pydantic schemas Gemini cannot
+        represent. Validate every response locally and retry invalid output."""
         if not self.client:
             raise LLMUnavailableError("Gemini API key is not configured or invalid.", stage=stage)
 
         target_model = model or settings.GEMINI_DEFAULT_MODEL
         current_user_prompt = user_prompt
+        response_schema = _gemini_response_schema(response_model)
+        current_system_prompt = system_prompt
+        if response_schema is None:
+            current_system_prompt = (
+                f"{system_prompt}\n\n"
+                "Return only a JSON object conforming to this JSON Schema. "
+                "Include every required property and no properties outside the schema:\n"
+                f"{json.dumps(response_model.model_json_schema())}"
+            )
         max_attempts = 4
         last_exception = None
 
         for attempt in range(1, max_attempts + 1):
             try:
+                config_kwargs = dict(
+                    system_instruction=current_system_prompt,
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                )
+                if response_schema:
+                    config_kwargs["response_schema"] = response_schema
+
                 await _gemini_request_pacer.wait_turn()
                 response = await self.client.aio.models.generate_content(
                     model=target_model,
                     contents=current_user_prompt,
-                    config=genai_types.GenerateContentConfig(
-                        system_instruction=system_prompt,
-                        temperature=0.1,
-                        response_mime_type="application/json",
-                        response_schema=_gemini_response_schema(response_model),
-                    ),
+                    config=genai_types.GenerateContentConfig(**config_kwargs),
                 )
                 raw_text = response.text or "{}"
                 clean_json = self._clean_json_str(raw_text)
