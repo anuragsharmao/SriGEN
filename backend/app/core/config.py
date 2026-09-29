@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     # Google's free-tier lineup moves fast.
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_DEFAULT_MODEL: str = "gemini-3.1-flash-lite"
+    GEMINI_REQUESTS_PER_MINUTE: int = 12
     # Used for the same accuracy-critical stages GROQ_REASONING_MODEL is used
     # for (Fact Graph / Sensitivity / Source Understanding) when the Gemini
     # backend is active — see the REASONING_MODEL property below. Same model

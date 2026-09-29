@@ -2,8 +2,7 @@
  * SriGEN API Client Service
  * 
  * Interacts directly with the FastAPI backend mounted at /api.
- * Provides unified request dispatch, token handling, error normalization,
- * and realistic fallback data conforming to backend Pydantic schemas.
+ * Provides unified request dispatch, token handling, and error normalization.
  */
 
 const API_BASE = "/api";
@@ -89,16 +88,7 @@ class ApiService {
   }
 
   async getMe() {
-    try {
-      return await this.request("/auth/me");
-    } catch {
-      return {
-        id: "usr_001",
-        username: "operator_sec_01",
-        role: "approver",
-        is_active: true,
-      };
-    }
+    return await this.request("/auth/me");
   }
 
   /* ------------------------------ Transformation ------------------------------ */
@@ -127,178 +117,85 @@ class ApiService {
   /* -------------------------------- Dashboard --------------------------------- */
 
   async getDrafts() {
-    try {
-      return await this.request("/dashboard/drafts");
-    } catch {
-      return [this.getMockDraftSummary("executive_summary")];
-    }
+    return await this.request("/dashboard/drafts");
   }
 
   async getDraftDetails(draftId) {
-    try {
-      return await this.request(`/dashboard/draft/${draftId}`);
-    } catch {
-      return this.getMockDraftDetails(draftId);
-    }
+    return await this.request(`/dashboard/draft/${draftId}`);
   }
 
   async exportStructuredJson(draftId) {
-    try {
-      return await this.request(`/dashboard/draft/${draftId}/export/json`);
-    } catch {
-      return {
-        draft_id: draftId,
-        deliverable_type: "presentation",
-        structured_content: this.getMockPresentation(),
-      };
-    }
+    return await this.request(`/dashboard/draft/${draftId}/export/json`);
   }
 
   /* --------------------------- Disclosure Control ----------------------------- */
 
   async getDisclosureReview(draftId) {
-    try {
-      return await this.request(`/disclosure/draft/${draftId}/review`);
-    } catch {
-      return this.getMockDisclosureReview(draftId);
-    }
+    return await this.request(`/disclosure/draft/${draftId}/review`);
   }
 
   async decideDisclosureItem(itemId, choice, manualEditText = null) {
-    try {
-      return await this.request(`/disclosure/item/${itemId}/decide`, {
-        method: "POST",
-        body: {
-          choice,
-          manual_edit_text: manualEditText,
-          decided_by: "operator_sec_01",
-        },
-      });
-    } catch {
-      return {
-        id: itemId,
-        analyst_choice: choice,
+    return await this.request(`/disclosure/item/${itemId}/decide`, {
+      method: "POST",
+      body: {
+        choice,
         manual_edit_text: manualEditText,
-        decision_source: "individual",
-      };
-    }
+        decided_by: "operator_sec_01",
+      },
+      });
   }
 
   async decideDisclosureGroup(draftId, groupKey, choice) {
-    try {
-      return await this.request(`/disclosure/draft/${draftId}/group/${groupKey}/decide`, {
-        method: "POST",
-        body: { choice, decided_by: "operator_sec_01" },
-      });
-    } catch {
-      return { status: "success", draft_id: draftId, group_key: groupKey, choice };
-    }
+    return await this.request(`/disclosure/draft/${draftId}/group/${groupKey}/decide`, {
+      method: "POST",
+      body: { choice, decided_by: "operator_sec_01" },
+    });
   }
 
   async acceptAllDisclosureRecommendations(draftId) {
-    try {
-      return await this.request(`/disclosure/draft/${draftId}/accept-all-recommendations`, {
-        method: "POST",
-        body: { decided_by: "operator_sec_01" },
-      });
-    } catch {
-      return { status: "success", draft_id: draftId, decision_source: "bulk_accept_all" };
-    }
+    return await this.request(`/disclosure/draft/${draftId}/accept-all-recommendations`, {
+      method: "POST",
+      body: { decided_by: "operator_sec_01" },
+    });
   }
 
   /* ---------------------------- Verify & Refine ------------------------------ */
 
   async verifyContent(payload) {
-    try {
-      return await this.request("/verify", {
-        method: "POST",
-        body: payload,
-      });
-    } catch {
-      return {
-        trust_score: {
-          grounding_score: 96.0,
-          consistency_score: 94.0,
-          policy_score: 100.0,
-          composite_trust_score: 96.2,
-          formula_explanation: "Weighted: 50% Grounding, 30% Consistency, 20% Policy",
-        },
-        claims: this.getMockClaims(),
-        entity_mismatches: [],
-        overall_verdict: "SUPPORTED",
-        is_corrupted_detected: false,
-      };
-    }
+    return await this.request("/verify", {
+      method: "POST",
+      body: payload,
+    });
   }
 
   async refineContent(payload) {
-    try {
-      return await this.request("/refine", {
-        method: "POST",
-        body: payload,
-      });
-    } catch {
-      const mockClaims = this.getMockClaims();
-      return {
-        original: {
-          content: payload.content_to_verify,
-          trust_score: { grounding_score: 90, consistency_score: 92, policy_score: 98, composite_trust_score: 92.2 },
-          claims: mockClaims,
-          entity_mismatches: [],
-          verdict: "SUPPORTED",
-          is_corrupted_detected: false,
-        },
-        final_content: payload.content_to_verify,
-      };
-    }
+    return await this.request("/refine", {
+      method: "POST",
+      body: payload,
+    });
   }
 
   /* -------------------------------- Approval ---------------------------------- */
 
   async approveDraft(draftId, finalContent = null) {
-    try {
-      return await this.request("/dashboard/approve", {
-        method: "POST",
-        body: { draft_id: draftId, final_content: finalContent },
-      });
-    } catch (err) {
-      if (err.status === 409) {
-        throw err; // Re-throw 409 (disclosure decisions unresolved)
-      }
-      return this.getMockLedgerEntry(draftId, finalContent);
-    }
+    return await this.request("/dashboard/approve", {
+      method: "POST",
+      body: { draft_id: draftId, final_content: finalContent },
+    });
   }
 
   /* ---------------------------- Provenance Ledger ----------------------------- */
 
   async getLedger() {
-    try {
-      return await this.request("/ledger");
-    } catch {
-      return [this.getMockLedgerEntry("draft_001")];
-    }
+    return await this.request("/ledger");
   }
 
   async verifyLedger() {
-    try {
-      return await this.request("/ledger/verify");
-    } catch {
-      return {
-        is_valid: true,
-        total_blocks: 1,
-        genesis_block_hash: "0000000000000000000000000000000000000000000000000000000000000000",
-        latest_block_hash: "8f43a9b8c2d1e0f4a3b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
-        details: "Cryptographic hash-chain verified from genesis to tip.",
-      };
-    }
+    return await this.request("/ledger/verify");
   }
 
   async getLedgerBlock(blockIndex) {
-    try {
-      return await this.request(`/ledger/${blockIndex}`);
-    } catch {
-      return this.getMockLedgerEntry("draft_001", null, blockIndex);
-    }
+    return await this.request(`/ledger/${blockIndex}`);
   }
 
   /* ----------------------------- Realistic Mocks ------------------------------ */

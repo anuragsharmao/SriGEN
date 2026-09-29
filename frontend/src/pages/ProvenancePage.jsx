@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { api } from "../services/api.js";
 import TopBar from "../components/TopBar.jsx";
 import { workflowStore } from "../services/workflowStore.js";
 import "./ProvenancePage.css";
@@ -69,28 +70,30 @@ const Icon = {
 
 export default function ProvenancePage() {
   const [searchParams] = useSearchParams();
-  const draftId = searchParams.get("draftId") || workflowStore.getActiveDraft()?.id || "draft_advisory_01";
+  const draftId = searchParams.get("draftId") || workflowStore.getActiveDraft()?.id;
+  const [ledgerEntry, setLedgerEntry] = useState(() => workflowStore.getLedgerEntry());
 
-  // Load recorded ledger entry or fallback
-  const ledgerEntry = workflowStore.getLedgerEntry() || {
-    id: "LEDGER-2026-03-20-0042",
-    index: 1247,
-    timestamp: new Date().toISOString(),
-    operator: "operator_sec_01",
-    model_version: "SriGEN Foundation v2.4 (Deterministic Seed)",
-    source_hash: "8f4e2c091ad578b3ce3c8591ef14032d1894bfa293e62df947702fbe1364d9b1",
-    draft_hash: "4a71d88390b1e7c8ff61099304918e77c5031b238efcc0184b29f0322b791448",
-    final_hash: "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
-    diff_reference: "diff_sec_0042_applied",
-    previous_hash: "0000a892f39b1c738e40192df789123891048bcae98129034871928371902847",
-    current_hash: "0000c14b982ef309485729182374910283719204857102938471928371029384",
-    draft_id: draftId,
-    signature: "ed25519:7a4192bc8100ef129983710298aef019283847102938172635418293a"
-  };
+  useEffect(() => {
+    if (ledgerEntry || !draftId) return;
+    api.getLedger().then((entries) => {
+      setLedgerEntry(entries.find((entry) => entry.draft_id === draftId) || null);
+    }).catch((error) => console.error("Failed to load ledger:", error));
+  }, [draftId, ledgerEntry]);
 
   const currentDraft = workflowStore.getAllDrafts().find((d) => d.id === draftId) || workflowStore.getActiveDraft();
   const sourceDoc = workflowStore.getSourceDoc();
   const trustScore = workflowStore.getTrustScore();
+
+  if (!ledgerEntry || !currentDraft || !sourceDoc || !trustScore) {
+    return (
+      <div className="provenance-page-root">
+        <TopBar activePage="provenance" />
+        <main className="provenance-container">
+          <p>Provenance data is not available yet. Approve a generated draft first.</p>
+        </main>
+      </div>
+    );
+  }
 
   // Copy feedback state
   const [copiedKey, setCopiedKey] = useState(null);
@@ -107,21 +110,21 @@ export default function ProvenancePage() {
     schema_version: "srigen.provenance.v2",
     ledger_entry: ledgerEntry,
     verification: {
-      composite_trust_score: trustScore.composite,
-      grounding_score: trustScore.grounding,
-      consistency_score: trustScore.consistency,
-      policy_score: trustScore.policy,
-      total_claims_verified: 12,
-      disclosure_gate_status: "100% Resolved"
+      composite_trust_score: trustScore?.composite,
+      grounding_score: trustScore?.grounding,
+      consistency_score: trustScore?.consistency,
+      policy_score: trustScore?.policy,
+      total_claims_verified: currentDraft?.claims?.length || 0,
+      disclosure_gate_status: workflowStore.areAllDisclosureResolved() ? "Resolved" : "Pending"
     },
     source: {
-      filename: sourceDoc.name,
-      sha256: ledgerEntry.source_hash
+      filename: sourceDoc?.name,
+      sha256: ledgerEntry?.source_hash
     },
     deliverable: {
-      id: currentDraft.id,
-      title: currentDraft.title,
-      sha256: ledgerEntry.final_hash
+      id: currentDraft?.id,
+      title: currentDraft?.title,
+      sha256: ledgerEntry?.final_hash
     },
     cryptographic_seal: {
       block_index: ledgerEntry.index,

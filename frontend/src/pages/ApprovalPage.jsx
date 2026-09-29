@@ -59,7 +59,7 @@ export default function ApprovalPage() {
   const [searchParams] = useSearchParams();
 
   // Load state from workflow store
-  const draftId = searchParams.get("draftId") || workflowStore.getActiveDraft()?.id || "draft_advisory_01";
+  const draftId = searchParams.get("draftId") || workflowStore.getActiveDraft()?.id;
   const currentDraft = workflowStore.getAllDrafts().find((d) => d.id === draftId) || workflowStore.getActiveDraft();
   const sourceDoc = workflowStore.getSourceDoc();
   const trustScore = workflowStore.getTrustScore();
@@ -70,48 +70,23 @@ export default function ApprovalPage() {
   const [isCommitting, setIsCommitting] = useState(false);
   const [commitStage, setCommitStage] = useState(1);
 
+  if (!currentDraft || !trustScore || !draftId) {
+    return (
+      <div className="approval-page-root">
+        <TopBar activePage="approval" />
+        <main className="approval-container">
+          <p>No generated draft is available for approval.</p>
+        </main>
+      </div>
+    );
+  }
+
   // Disclosure counts
   const disclosedCount = disclosureItems.filter((i) => i.analyst_choice === "disclose").length;
   const withheldCount = disclosureItems.filter((i) => i.analyst_choice === "withhold").length;
   const editedCount = disclosureItems.filter((i) => i.analyst_choice === "edit").length;
 
-  // Build resolved final content with applied disclosure decisions
-  const disc1 = disclosureItems.find((i) => i.id === "disc_1");
-  const disc2 = disclosureItems.find((i) => i.id === "disc_2");
-  const disc3 = disclosureItems.find((i) => i.id === "disc_3");
-
-  const val1 =
-    disc1?.analyst_choice === "disclose"
-      ? "PRJ-ALPHA"
-      : disc1?.analyst_choice === "edit"
-      ? disc1.manual_edit_text
-      : "[REDACTED CLUSTER]";
-
-  const val2 =
-    disc2?.analyst_choice === "disclose"
-      ? "$14.2M OPEX"
-      : disc2?.analyst_choice === "edit"
-      ? disc2.manual_edit_text
-      : "[FIGURE WITHHELD]";
-
-  const val3 =
-    disc3?.analyst_choice === "disclose"
-      ? "Apex Aerospace Ltd."
-      : disc3?.analyst_choice === "edit"
-      ? disc3.manual_edit_text
-      : "[TIER-1 SUPPLIER]";
-
-  const resolvedFinalText = `EXECUTIVE SUMMARY & OPERATIONAL ASSESSMENT
-
-This synthesized advisory details the operational rollout and strategic metrics established during the evaluation cycle.
-
-Q1 production reached 42,000 units across primary manufacturing clusters. All critical metrics conformed to standard operating boundaries. Internal telemetry cluster identified as ${val1} has met performance gates.
-
-Zero critical telemetry anomalies or security breaches were logged during validation. Quarterly balance sheet impact estimated around ${val2} with total budget headroom intact.
-
-Phase 2 operational migration is scheduled to initiate early in Q3 2026. Implementation partners including ${val3} remain fully on track for delivery.
-
-Capital reinvestment efficiency improved by 18.5% over the preceding fiscal quarter.`;
+  const resolvedFinalText = currentDraft?.approved_content || currentDraft?.content || currentDraft?.draft_content || "";
 
   // Submit Approval & Commit to Ledger
   const handleCommitToLedger = async () => {
@@ -125,15 +100,13 @@ Capital reinvestment efficiency improved by 18.5% over the preceding fiscal quar
       setCommitStage(4);
       setTimeout(async () => {
         try {
+          if (!currentDraft?.id) throw new Error("No generated draft is available for approval.");
           const ledgerResponse = await api.approveDraft(currentDraft.id, resolvedFinalText);
           workflowStore.recordApproval(ledgerResponse);
-        } catch {
-          // Store already creates valid cryptographic ledger fallback
-          workflowStore.recordApproval({
-            draft_id: currentDraft.id,
-            final_content: resolvedFinalText,
-            notes: approvalNotes
-          });
+        } catch (error) {
+          console.error("Approval failed:", error);
+          setIsCommitting(false);
+          return;
         }
         setIsCommitting(false);
         navigate(`/provenance?draftId=${currentDraft.id}`);

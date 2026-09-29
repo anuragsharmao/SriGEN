@@ -7,66 +7,9 @@
  * Persists session state in memory and localStorage for resilient page refresh.
  */
 
-const STORAGE_KEY = "srigen_workflow_session_v1";
+const STORAGE_KEY = "srigen_workflow_session_v2";
 
-const DEFAULT_SOURCE = {
-  id: "SRC-0241",
-  name: "incident_telemetry_report.pdf",
-  size: "2.4 MB",
-  type: "PDF",
-  hash: "8f4e2c091ad578b3ce3c8591ef14032d1894bfa293e62df947702fbe1364d9b1",
-  text: "",
-};
-
-const DEFAULT_TRUST_SCORE = {
-  composite: 96.4,
-  grounding: 98.2,
-  consistency: 95.0,
-  policy: 100.0,
-  formula_explanation: "Trust Index = (50% Grounding) + (30% Consistency) + (20% Policy).",
-};
-
-const DEFAULT_DISCLOSURE_ITEMS = [
-  {
-    id: "disc_1",
-    draft_id: "draft_advisory_01",
-    placeholder: "[INTERNAL_ID: PRJ-ALPHA]",
-    category: "INTERNAL_IDENTIFIER",
-    detected_value_preview: "PRJ-ALPHA",
-    confidence: 0.98,
-    reasoning: "Internal operational codename detected; unreleased publicly.",
-    suggested_default: "disclose",
-    analyst_choice: null,
-    manual_edit_text: null,
-    group_key: "group_internal_id",
-  },
-  {
-    id: "disc_2",
-    draft_id: "draft_advisory_01",
-    placeholder: "[REVENUE_METRIC: $14.2M]",
-    category: "FINANCIAL_FIGURE",
-    detected_value_preview: "$14.2M OPEX",
-    confidence: 0.95,
-    reasoning: "Exact OPEX expenditure figure subject to institutional embargo.",
-    suggested_default: "withhold",
-    analyst_choice: null,
-    manual_edit_text: null,
-    group_key: "group_financial",
-  },
-  {
-    id: "disc_3",
-    draft_id: "draft_advisory_01",
-    placeholder: "[VENDOR_NAME: Apex Aerospace Ltd.]",
-    category: "VENDOR_PARTNER",
-    detected_value_preview: "Apex Aerospace Ltd.",
-    confidence: 0.99,
-    reasoning: "Commercial partner name mentioned; NDA status pending verification.",
-    suggested_default: "disclose",
-    analyst_choice: null,
-    manual_edit_text: null,
-    group_key: "group_vendor",
-  },
-];
+const EMPTY_SOURCE = null;
 
 class WorkflowStore {
   constructor() {
@@ -80,17 +23,17 @@ class WorkflowStore {
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          source: parsed.source || DEFAULT_SOURCE,
+          source: parsed.source || EMPTY_SOURCE,
           batchId: parsed.batchId || "batch_" + Date.now().toString(36),
           factGraph: parsed.factGraph || null,
           drafts: parsed.drafts || [],
-          selectedDraftId: parsed.selectedDraftId || (parsed.drafts?.[0]?.id ?? "draft_advisory_01"),
+          selectedDraftId: parsed.selectedDraftId || (parsed.drafts?.[0]?.id ?? null),
           disclosureDecisions: parsed.disclosureDecisions || {},
-          disclosureItems: parsed.disclosureItems || DEFAULT_DISCLOSURE_ITEMS,
-          trustScore: parsed.trustScore || DEFAULT_TRUST_SCORE,
+          disclosureItems: parsed.disclosureItems || [],
+          trustScore: parsed.trustScore || null,
           approvalStatus: parsed.approvalStatus || "pending",
           latestLedgerEntry: parsed.latestLedgerEntry || null,
-          currentUserRole: parsed.currentUserRole || "approver",
+          currentUserRole: parsed.currentUserRole || null,
         };
       }
     } catch (e) {
@@ -98,28 +41,17 @@ class WorkflowStore {
     }
 
     return {
-      source: DEFAULT_SOURCE,
-      batchId: "batch_" + Date.now().toString(36),
+      source: EMPTY_SOURCE,
+      batchId: null,
       factGraph: null,
-      drafts: [
-        {
-          id: "draft_advisory_01",
-          title: "Operational Advisory",
-          deliverable_type: "advisory",
-          status: "Generated · Verification Passed",
-          content: `EXECUTIVE SUMMARY & OPERATIONAL ASSESSMENT\n\nThis synthesized advisory details the operational rollout and strategic metrics established during the evaluation cycle.\n\nQ1 production reached 42,000 units across primary manufacturing clusters. All critical metrics conformed to standard operating boundaries. Internal telemetry cluster identified as PRJ-ALPHA has met performance gates.\n\nZero critical telemetry anomalies or security breaches were logged during validation. Quarterly balance sheet impact estimated around $14.2M OPEX with total budget headroom intact.\n\nPhase 2 operational migration is scheduled to initiate early in Q3 2026. Implementation partners including Apex Aerospace Ltd. remain fully on track for delivery.\n\nCapital reinvestment efficiency improved by 18.5% over the preceding fiscal quarter.`,
-          format_tags: ["Advisory", "English", "Leadership"],
-          reading_time: "2 min read",
-          word_count: 142,
-        },
-      ],
+      drafts: [],
       selectedDraftId: "draft_advisory_01",
       disclosureDecisions: {},
-      disclosureItems: DEFAULT_DISCLOSURE_ITEMS,
-      trustScore: DEFAULT_TRUST_SCORE,
+      disclosureItems: [],
+      trustScore: null,
       approvalStatus: "pending",
       latestLedgerEntry: null,
-      currentUserRole: "approver",
+      currentUserRole: null,
     };
   }
 
@@ -153,21 +85,21 @@ class WorkflowStore {
 
   // Source document getters & setters
   getSourceDoc() {
-    return this.state.source || DEFAULT_SOURCE;
+    return this.state.source;
   }
 
   setSourceDoc(sourceMeta) {
     this.state.source = {
       ...this.state.source,
       ...sourceMeta,
-      hash: sourceMeta.hash || this.state.source?.hash || "8f4e2c091ad578b3ce3c8591ef14032d1894bfa293e62df947702fbe1364d9b1",
+      hash: sourceMeta.hash || this.state.source?.hash || null,
     };
     this.save();
   }
 
   // Trust score getters & setters
   getTrustScore() {
-    return this.state.trustScore || DEFAULT_TRUST_SCORE;
+    return this.state.trustScore;
   }
 
   setTrustScore(trustScore) {
@@ -177,21 +109,7 @@ class WorkflowStore {
 
   // Drafts management
   getAllDrafts() {
-    if (this.state.drafts && this.state.drafts.length > 0) {
-      return this.state.drafts;
-    }
-    return [
-      {
-        id: "draft_advisory_01",
-        title: "Operational Advisory",
-        deliverable_type: "advisory",
-        status: "Generated · Verification Passed",
-        content: `EXECUTIVE SUMMARY & OPERATIONAL ASSESSMENT\n\nThis synthesized advisory details the operational rollout and strategic metrics established during the evaluation cycle.\n\nQ1 production reached 42,000 units across primary manufacturing clusters. All critical metrics conformed to standard operating boundaries. Internal telemetry cluster identified as PRJ-ALPHA has met performance gates.\n\nZero critical telemetry anomalies or security breaches were logged during validation. Quarterly balance sheet impact estimated around $14.2M OPEX with total budget headroom intact.\n\nPhase 2 operational migration is scheduled to initiate early in Q3 2026. Implementation partners including Apex Aerospace Ltd. remain fully on track for delivery.\n\nCapital reinvestment efficiency improved by 18.5% over the preceding fiscal quarter.`,
-        format_tags: ["Advisory", "English", "Leadership"],
-        reading_time: "2 min read",
-        word_count: 142,
-      },
-    ];
+    return this.state.drafts || [];
   }
 
   getActiveDraft() {
@@ -239,24 +157,17 @@ class WorkflowStore {
       this.state.factGraph = generateResponse.fact_graph;
     }
     if (generateResponse.trust_score) {
-      this.state.trustScore = {
-        ...DEFAULT_TRUST_SCORE,
-        ...generateResponse.trust_score,
-      };
+      this.state.trustScore = generateResponse.trust_score;
     }
 
     if (generateResponse.drafts && Array.isArray(generateResponse.drafts)) {
       this.state.drafts = generateResponse.drafts;
-      this.state.selectedDraftId = generateResponse.drafts[0]?.id || "draft_01";
+      this.state.selectedDraftId = generateResponse.drafts[0]?.id || null;
     }
 
     // Reset decisions for new generation
     this.state.disclosureDecisions = {};
-    this.state.disclosureItems = DEFAULT_DISCLOSURE_ITEMS.map((item) => ({
-      ...item,
-      analyst_choice: null,
-      manual_edit_text: null,
-    }));
+    this.state.disclosureItems = generateResponse.disclosure_items || [];
     this.state.approvalStatus = "pending";
     this.state.latestLedgerEntry = null;
     this.save();
@@ -264,7 +175,7 @@ class WorkflowStore {
 
   // Disclosure controls management
   getDisclosureItems() {
-    const items = this.state.disclosureItems || DEFAULT_DISCLOSURE_ITEMS;
+    const items = this.state.disclosureItems || [];
     return items.map((item) => {
       const decision = this.state.disclosureDecisions[item.id];
       if (decision) {

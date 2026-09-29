@@ -33,6 +33,8 @@ import asyncio
 import json
 import logging
 import mimetypes
+import random
+import re
 import time
 from abc import ABC, abstractmethod
 from typing import Optional, Type
@@ -40,13 +42,72 @@ from pydantic import BaseModel, ValidationError
 from groq import AsyncGroq, RateLimitError, InternalServerError, APIConnectionError, APIStatusError
 import httpx
 
-from google import genai
-from google.genai import types as genai_types
-from google.genai import errors as genai_errors
+try:
+    from google import genai
+    from google.genai import types as genai_types
+    from google.genai import errors as genai_errors
+except (ImportError, AttributeError):
+    genai = None
+    genai_types = None
+    genai_errors = None
 
 from app.core.config import settings
 
 logger = logging.getLogger("srigen.llm")
+
+
+class _GeminiRequestPacer:
+    """Serialize Gemini requests and keep their start times under the RPM cap."""
+
+    def __init__(self, requests_per_minute: int):
+        self.interval = 60.0 / max(1, requests_per_minute)
+        self._condition = asyncio.Condition()
+        self._next_request_at = 0.0
+        self._cooldown_until = 0.0
+
+    async def wait_turn(self) -> None:
+        async with self._condition:
+            while True:
+                now = time.monotonic()
+                request_at = max(self._next_request_at, self._cooldown_until)
+                if now >= request_at:
+                    self._next_request_at = now + self.interval
+                    return
+                try:
+                    await asyncio.wait_for(
+                        self._condition.wait(),
+                        timeout=request_at - now,
+                    )
+                except asyncio.TimeoutError:
+                    pass
+
+    async def defer(self, seconds: float) -> None:
+        async with self._condition:
+            self._cooldown_until = max(
+                self._cooldown_until,
+                time.monotonic() + max(0.0, seconds),
+            )
+            self._condition.notify_all()
+
+
+_gemini_request_pacer = _GeminiRequestPacer(settings.GEMINI_REQUESTS_PER_MINUTE)
+
+
+def _retry_after_seconds(error: Exception) -> Optional[float]:
+    """Extract Google's retry hint when it is present in the SDK error."""
+    message = str(error)
+    match = re.search(r"retry in\s+([0-9]+(?:\.[0-9]+)?)\s*s", message, re.IGNORECASE)
+    if match:
+        return float(match.group(1))
+    match = re.search(r"retryDelay['\"]?\s*[:=]\s*['\"]?([0-9]+(?:\.[0-9]+)?)s", message)
+    return float(match.group(1)) if match else None
+
+
+def _retry_backoff_seconds(error: Exception, attempt: int) -> float:
+    retry_after = _retry_after_seconds(error)
+    if retry_after is not None:
+        return retry_after
+    return min(2 ** attempt, 30) + random.uniform(0, 0.5)
 
 
 def _enforce_prompt_budget(prompt: str, stage: str, max_chars: int = 40_000) -> str:
@@ -372,14 +433,16 @@ class GeminiBackend(LLMBackend):
 
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
-        self.client: Optional[genai.Client] = None
-        if self.api_key and self.api_key.strip():
+        self.client = None
+        if genai and self.api_key and self.api_key.strip():
             try:
                 self.client = genai.Client(api_key=self.api_key)
                 logger.info("Initialized Gemini client with API key.")
             except Exception as e:
                 logger.warning(f"Could not initialize Gemini client: {e}.")
                 self.client = None
+        elif not genai:
+            logger.info("google-genai SDK not available.")
         else:
             logger.info("No Gemini API key configured.")
 
@@ -395,6 +458,7 @@ class GeminiBackend(LLMBackend):
             self._health_cache = {"reachable": False, "timestamp": now}
             return False
         try:
+            await _gemini_request_pacer.wait_turn()
             res = await self.client.aio.models.generate_content(
                 model=settings.GEMINI_DEFAULT_MODEL,
                 contents="ping",
@@ -420,6 +484,9 @@ class GeminiBackend(LLMBackend):
             return True
         return False
 
+    def _is_rate_limited(self, e: Exception) -> bool:
+        return isinstance(e, genai_errors.ClientError) and getattr(e, "code", None) == 429
+
     async def complete(
         self,
         system_prompt: str,
@@ -433,11 +500,12 @@ class GeminiBackend(LLMBackend):
             raise LLMUnavailableError("Gemini API key is not configured or invalid.", stage=stage)
 
         target_model = model or settings.GEMINI_DEFAULT_MODEL
-        backoffs = [0.5, 1.5, 4.0]
+        max_attempts = 4
         last_exception = None
 
-        for attempt, delay in enumerate(backoffs, 1):
+        for attempt in range(1, max_attempts + 1):
             try:
+                await _gemini_request_pacer.wait_turn()
                 response = await self.client.aio.models.generate_content(
                     model=target_model,
                     contents=user_prompt,
@@ -452,11 +520,15 @@ class GeminiBackend(LLMBackend):
                 if not self._is_retryable(e):
                     raise LLMUnavailableError(f"Gemini API client error: {e}", stage=stage) from e
                 last_exception = e
-                logger.warning(f"Gemini API attempt {attempt} failed: {e}. Retrying in {delay}s...")
-                if attempt < len(backoffs):
-                    await asyncio.sleep(delay)
+                if attempt < max_attempts:
+                    delay = _retry_backoff_seconds(e, attempt)
+                    logger.warning(f"Gemini API attempt {attempt} failed: {e}. Retrying in {delay:.2f}s...")
+                    if self._is_rate_limited(e):
+                        await _gemini_request_pacer.defer(delay)
+                    else:
+                        await asyncio.sleep(delay)
 
-        raise LLMUnavailableError(f"Gemini API call failed after {len(backoffs)} retries: {last_exception}", stage=stage)
+        raise LLMUnavailableError(f"Gemini API call failed after {max_attempts} attempts: {last_exception}", stage=stage)
 
     async def structured_completion(
         self,
@@ -479,11 +551,12 @@ class GeminiBackend(LLMBackend):
 
         target_model = model or settings.GEMINI_DEFAULT_MODEL
         current_user_prompt = user_prompt
-        backoffs = [0.5, 1.5, 4.0]
+        max_attempts = 4
         last_exception = None
 
-        for attempt, delay in enumerate(backoffs, 1):
+        for attempt in range(1, max_attempts + 1):
             try:
+                await _gemini_request_pacer.wait_turn()
                 response = await self.client.aio.models.generate_content(
                     model=target_model,
                     contents=current_user_prompt,
@@ -505,17 +578,21 @@ class GeminiBackend(LLMBackend):
                     f"Previous attempt produced invalid schema output:\n{val_err}\n"
                     f"Please correct the JSON formatting and schema fields."
                 )
-                if attempt < len(backoffs):
-                    await asyncio.sleep(delay)
+                if attempt < max_attempts:
+                    await asyncio.sleep(_retry_backoff_seconds(val_err, attempt))
             except Exception as e:
                 if not self._is_retryable(e):
                     raise LLMUnavailableError(f"Gemini API structured error: {e}", stage=stage) from e
                 last_exception = e
-                logger.warning(f"Gemini API attempt {attempt} failed: {e}. Retrying in {delay}s...")
-                if attempt < len(backoffs):
-                    await asyncio.sleep(delay)
+                if attempt < max_attempts:
+                    delay = _retry_backoff_seconds(e, attempt)
+                    logger.warning(f"Gemini API attempt {attempt} failed: {e}. Retrying in {delay:.2f}s...")
+                    if self._is_rate_limited(e):
+                        await _gemini_request_pacer.defer(delay)
+                    else:
+                        await asyncio.sleep(delay)
 
-        raise LLMUnavailableError(f"Gemini structured call failed after {len(backoffs)} retries: {last_exception}", stage=stage)
+        raise LLMUnavailableError(f"Gemini structured call failed after {max_attempts} attempts: {last_exception}", stage=stage)
 
     async def describe_image(
         self,
@@ -530,6 +607,7 @@ class GeminiBackend(LLMBackend):
 
         target_model = model or settings.GEMINI_DEFAULT_MODEL
         try:
+            await _gemini_request_pacer.wait_turn()
             response = await self.client.aio.models.generate_content(
                 model=target_model,
                 contents=[
@@ -561,6 +639,7 @@ class GeminiBackend(LLMBackend):
         target_model = model or settings.GEMINI_DEFAULT_MODEL
         mime_type = mimetypes.guess_type(filename)[0] or "audio/mpeg"
         try:
+            await _gemini_request_pacer.wait_turn()
             response = await self.client.aio.models.generate_content(
                 model=target_model,
                 contents=[

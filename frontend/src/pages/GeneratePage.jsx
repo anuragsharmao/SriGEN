@@ -684,18 +684,26 @@ export default function GeneratePage() {
           id: d.id,
           title: title,
           deliverable_type: d.deliverable_type || d.id,
-          status: "Generated · Verification Passed",
+          status: d.status || "Generated · Verification Passed",
           content: content,
+          draft_content: content,
           structured_content: d.structured_content,
           format_tags: [title, language || "English", targetAudience],
           reading_time: `${Math.max(1, Math.round(content.split(/\s+/).filter(Boolean).length / 75))} min read`,
           word_count: content.split(/\s+/).filter(Boolean).length,
+          claims: d.claims || [],
+          security_actions: d.security_actions || [],
+          policy_violations: d.policy_violations || [],
+          trust_score: d.trust_score || null,
         };
       });
 
       const finalGenResult = {
-        source_id: resultObj.source_id || sourceFile.id,
-        source_hash: resultObj.source_hash || sourceFile.hash || "8f4e2c091ad578b3ce3c8591ef14032d1894bfa293e62df947702fbe1364d9b1",
+        source_id: resultObj.source_id,
+        source_hash: resultObj.source_hash,
+        batch_id: resultObj.batch_id,
+        fact_graph: resultObj.fact_graph,
+        security_actions: resultObj.security_actions || [],
         trust_score: resultObj.drafts?.[0]?.trust_score
           ? {
               composite: resultObj.drafts[0].trust_score.composite_trust_score,
@@ -708,15 +716,18 @@ export default function GeneratePage() {
         drafts: formattedDrafts,
       };
 
+      const review = await api.getDisclosureReview(formattedDrafts[0].id);
+      finalGenResult.disclosure_items = (review.groups || []).flatMap((group) => group.items || []);
+
       setProcessingStage(5);
       setGeneratedDrafts(finalGenResult);
 
       workflowStore.setSourceDoc({
-        id: sourceFile.id,
+        id: resultObj.source_id,
         name: sourceFile.name,
         size: sourceFile.size,
         type: sourceFile.type,
-        hash: sourceFile.hash || "8f4e2c091ad578b3ce3c8591ef14032d1894bfa293e62df947702fbe1364d9b1",
+        hash: resultObj.source_hash,
         text: sourceFile.text,
       });
       workflowStore.setGenerationResult(finalGenResult);
