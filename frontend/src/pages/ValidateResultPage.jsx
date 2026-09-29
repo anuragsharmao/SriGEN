@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import TopBar from "../components/TopBar.jsx";
 import { workflowStore } from "../services/workflowStore.js";
@@ -229,39 +229,185 @@ export default function ValidateResultPage() {
 
   // Workflow state from store
   const [storeState, setStoreState] = useState(() => workflowStore.getState());
-  const [selectedDelivId, setSelectedDelivId] = useState("deliv_01");
-  const [selectedClaimId, setSelectedClaimId] = useState("E03");
+  const isRefineMode = storeState.mode === "refine" || Boolean(storeState.drafts?.[0]?.id?.includes("refine"));
+
+  // Dynamic deliverables list
+  const deliverables = useMemo(() => {
+    if (storeState.drafts && storeState.drafts.length > 0) {
+      return storeState.drafts.map((d, index) => {
+        const typeKey = (d.deliverable_type || "").toLowerCase();
+        let IconComp = Icon.Doc;
+        if (typeKey.includes("share") || typeKey.includes("linkedin") || typeKey.includes("twitter")) {
+          IconComp = Icon.Share;
+        } else if (typeKey.includes("alert") || typeKey.includes("advisory") || typeKey.includes("bell")) {
+          IconComp = Icon.Doc;
+        }
+
+        const score = d.trust_score?.composite ?? d.trust_score?.composite_trust_score ?? 94;
+        const status = (d.status || "").toLowerCase().includes("attention") ? "ATTENTION" : "VERIFIED";
+
+        return {
+          id: d.id,
+          index: String(index + 1).padStart(2, "0"),
+          type: d.deliverable_type || "deliverable",
+          title: (d.title || d.deliverable_type || "DELIVERABLE").toUpperCase(),
+          status: status,
+          trustScore: Math.round(score),
+          icon: IconComp,
+          rawDraft: d,
+        };
+      });
+    }
+    return INITIAL_DELIVERABLES;
+  }, [storeState.drafts]);
+
+  const [selectedDelivId, setSelectedDelivId] = useState(() => {
+    const drafts = workflowStore.getState().drafts;
+    return drafts?.[0]?.id || "deliv_01";
+  });
+
+  // Keep selectedDelivId synchronized when deliverables update
+  useEffect(() => {
+    if (deliverables.length > 0 && !deliverables.some((d) => d.id === selectedDelivId)) {
+      setSelectedDelivId(deliverables[0].id);
+    }
+  }, [deliverables, selectedDelivId]);
+
+  const activeDeliverable =
+    deliverables.find((d) => d.id === selectedDelivId) || deliverables[0];
+  const activeDraft = activeDeliverable?.rawDraft || storeState.drafts?.find((d) => d.id === selectedDelivId) || workflowStore.getActiveDraft() || null;
+
+  // Dynamic claims map
+  const claimsMap = useMemo(() => {
+    if (activeDraft?.claims && Array.isArray(activeDraft.claims) && activeDraft.claims.length > 0) {
+      const map = {};
+      activeDraft.claims.forEach((c, idx) => {
+        const tag = c.tag || `E0${idx + 1}`;
+        map[tag] = {
+          id: c.id || tag,
+          tag: tag,
+          status: c.entailed === false || c.status === "ATTENTION" ? "ATTENTION" : "VERIFIED",
+          quote: c.quote || c.claim_text || "Verified factual assertion.",
+          evidence: c.evidence || c.matched_source_passage || c.reasoning || "Confirmed in source document.",
+          matchType: c.matchType || (c.entity_mismatches?.length ? "Entity Variance" : "Entity + Semantic"),
+          grounding: c.entailed === false ? "Review recommended" : "Grounding confirmed",
+        };
+      });
+      return map;
+    }
+    return CLAIMS_DATA;
+  }, [activeDraft]);
+
+  const claimTags = Object.keys(claimsMap);
+  const [selectedClaimId, setSelectedClaimId] = useState(() => claimTags[0] || "E03");
+
+  useEffect(() => {
+    if (claimTags.length > 0 && !claimsMap[selectedClaimId]) {
+      setSelectedClaimId(claimTags[0]);
+    }
+  }, [claimsMap, claimTags, selectedClaimId]);
+
+  const activeClaim = claimsMap[selectedClaimId] || claimsMap[claimTags[0]] || CLAIMS_DATA.E03;
+
   const [zoomLevel, setZoomLevel] = useState("100%");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [saveToast, setSaveToast] = useState(false);
 
-  // Disclosure items
-  const [disclosureList, setDisclosureList] = useState(INITIAL_DISCLOSURES);
+  // Disclosure items from store or initial
+  const [disclosureList, setDisclosureList] = useState(() => {
+    const storeItems = workflowStore.getState().disclosureItems;
+    if (storeItems && storeItems.length > 0) {
+      return storeItems.map((item, idx) => ({
+        id: item.id || `disc_${idx + 1}`,
+        text: item.text || item.reasoning || item.detected_value_preview || "Disclosure item requires confirmation.",
+        action: item.analyst_choice ? (item.analyst_choice.charAt(0).toUpperCase() + item.analyst_choice.slice(1)) : (item.action || "Disclose"),
+        resolved: Boolean(item.resolved || item.analyst_choice),
+        customText: item.manual_edit_text || item.customText || "",
+      }));
+    }
+    return INITIAL_DISCLOSURES;
+  });
   const [editingDisclosureId, setEditingDisclosureId] = useState(null);
   const [editingText, setEditingText] = useState("");
 
-  // Dimensions
-  const [groundingScore] = useState(94);
-  const [consistencyScore] = useState(100);
-  const [policyScore] = useState(79);
-  const compositeTrustScore = 91;
+  // Sync disclosure items when store updates
+  useEffect(() => {
+    if (storeState.disclosureItems && storeState.disclosureItems.length > 0) {
+      setDisclosureList(
+        storeState.disclosureItems.map((item, idx) => ({
+          id: item.id || `disc_${idx + 1}`,
+          text: item.text || item.reasoning || item.detected_value_preview || "Disclosure item requires confirmation.",
+          action: item.analyst_choice ? (item.analyst_choice.charAt(0).toUpperCase() + item.analyst_choice.slice(1)) : (item.action || "Disclose"),
+          resolved: Boolean(item.resolved || item.analyst_choice),
+          customText: item.manual_edit_text || item.customText || "",
+        }))
+      );
+    }
+  }, [storeState.disclosureItems]);
 
-  // Active deliverable
-  const activeDeliverable =
-    INITIAL_DELIVERABLES.find((d) => d.id === selectedDelivId) || INITIAL_DELIVERABLES[0];
-  const activeClaim = CLAIMS_DATA[selectedClaimId] || CLAIMS_DATA.E03;
+  // Scores
+  const compositeTrustScore =
+    activeDraft?.trust_score?.composite ??
+    activeDraft?.trust_score?.composite_trust_score ??
+    storeState.trustScore?.composite ??
+    storeState.trustScore?.composite_trust_score ??
+    activeDeliverable?.trustScore ??
+    91;
+
+  const groundingScore =
+    activeDraft?.trust_score?.grounding ??
+    activeDraft?.trust_score?.grounding_score ??
+    storeState.trustScore?.grounding ??
+    storeState.trustScore?.grounding_score ??
+    94;
+
+  const consistencyScore =
+    activeDraft?.trust_score?.consistency ??
+    activeDraft?.trust_score?.consistency_score ??
+    storeState.trustScore?.consistency ??
+    storeState.trustScore?.consistency_score ??
+    100;
+
+  const policyScore =
+    activeDraft?.trust_score?.policy ??
+    activeDraft?.trust_score?.policy_score ??
+    storeState.trustScore?.policy ??
+    storeState.trustScore?.policy_score ??
+    79;
+
+  const cfgSource = storeState.source?.name || activeDraft?.transformation_config?.source || "incident_report.pdf";
+  const cfgLanguage = activeDraft?.transformation_config?.language || activeDraft?.format_tags?.[1] || "Auto (English)";
+  const cfgAudience = activeDraft?.transformation_config?.audience || activeDraft?.format_tags?.[2] || "Senior Leadership";
+  const cfgTone = activeDraft?.transformation_config?.tone || "Auto → Formal";
+  const cfgDetail = activeDraft?.transformation_config?.length || "Balanced";
+  const cfgDeliverableNames = isRefineMode
+    ? (activeDeliverable?.title || "Refined Deliverable")
+    : (deliverables.map((d) => d.title).join(" + "));
+
+  const currentDateStr = useMemo(() => {
+    return new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }, []);
+
+  const activeDeliverableSubtitle = isRefineMode
+    ? `Evidence-Grounded Refinement · ${cfgAudience}`
+    : "Incident Response – Operational Overview";
+
+  const allClaimsList = Object.values(claimsMap);
+  const totalClaimsCount = allClaimsList.length || 17;
+  const verifiedClaimsCount = allClaimsList.filter((c) => c.status === "VERIFIED").length || (allClaimsList.length > 0 ? allClaimsList.length - 1 : 16);
+  const attentionClaimsCount = allClaimsList.filter((c) => c.status === "ATTENTION").length || (allClaimsList.length > 0 ? 1 : 1);
 
   useEffect(() => {
-    document.title = "SriGEN — Validate Result";
+    document.title = isRefineMode ? "SriGEN — Validate Refined Result" : "SriGEN — Validate Result";
     const unsubscribe = workflowStore.subscribe((newState) => {
       setStoreState({ ...newState });
     });
     return unsubscribe;
-  }, []);
+  }, [isRefineMode]);
 
   const handleSelectClaim = (claimTag) => {
-    if (CLAIMS_DATA[claimTag]) {
+    if (claimsMap[claimTag]) {
       setSelectedClaimId(claimTag);
     }
   };
@@ -339,8 +485,8 @@ export default function ValidateResultPage() {
 
   return (
     <div className="val-workspace-root">
-      {/* 1. MASTER TOP NAVIGATION (Preserving canonical top bar, Generate active) */}
-      <TopBar activePage="generate" />
+      {/* 1. MASTER TOP NAVIGATION (Preserving canonical top bar, Generate or Refine active) */}
+      <TopBar activePage={isRefineMode ? "refine" : "generate"} />
 
       {/* 2. SUB-HEADER WITH TOPOGRAPHIC TEXTURE & WORKFLOW PATH */}
       <header className="val-subhead">
@@ -381,14 +527,18 @@ export default function ValidateResultPage() {
         <div className="val-subhead-inner">
           {/* Left Title Block */}
           <div className="val-title-block">
-            <div className="val-eyebrow">VALIDATE / GENERATED RESULTS</div>
+            <div className="val-eyebrow">
+              {isRefineMode ? "VALIDATE / REFINED RESULTS" : "VALIDATE / GENERATED RESULTS"}
+            </div>
             <h1 className="val-heading">Validate Result</h1>
             <p className="val-supporting">
-              Inspect evidence, resolve disclosure findings, and confirm the generated result before approval.
+              {isRefineMode
+                ? "Inspect evidence grounding, resolve disclosure findings, and confirm the refined deliverable before approval."
+                : "Inspect evidence, resolve disclosure findings, and confirm the generated result before approval."}
             </p>
           </div>
 
-          {/* Right Workflow Path: 01 UNDERSTAND -> 02 CONTROL -> 03 GENERATE -> 04 VALIDATE -> 05 PROVE */}
+          {/* Right Workflow Path: 01 UNDERSTAND/CONTENT -> 02 CONTROL/EVIDENCE -> 03 GENERATE/REFINE -> 04 VALIDATE -> 05 PROVE */}
           <div className="val-workflow-track" aria-label="Transformation Workflow Progression">
             <div className="val-wf-step val-wf-past">
               <div className="val-wf-circle">
@@ -396,7 +546,7 @@ export default function ValidateResultPage() {
               </div>
               <div className="val-wf-label">
                 <span className="wf-num">01</span>
-                <span className="wf-name">UNDERSTAND</span>
+                <span className="wf-name">{isRefineMode ? "CONTENT" : "UNDERSTAND"}</span>
               </div>
             </div>
 
@@ -410,7 +560,7 @@ export default function ValidateResultPage() {
               </div>
               <div className="val-wf-label">
                 <span className="wf-num">02</span>
-                <span className="wf-name">CONTROL</span>
+                <span className="wf-name">{isRefineMode ? "EVIDENCE" : "CONTROL"}</span>
               </div>
             </div>
 
@@ -424,7 +574,7 @@ export default function ValidateResultPage() {
               </div>
               <div className="val-wf-label">
                 <span className="wf-num">03</span>
-                <span className="wf-name">GENERATE</span>
+                <span className="wf-name">{isRefineMode ? "REFINE" : "GENERATE"}</span>
               </div>
             </div>
 
@@ -464,14 +614,18 @@ export default function ValidateResultPage() {
         {/* ================= COLUMN 1: DELIVERABLES ================= */}
         <aside className="val-col-deliverables" aria-label="Deliverables List">
           <div className="val-sidebar-header">
-            <h2 className="val-sidebar-title">Deliverables</h2>
-            <span className="val-sidebar-count">3 total</span>
+            <h2 className="val-sidebar-title">
+              {isRefineMode ? "Refined Output" : "Deliverables"}
+            </h2>
+            <span className="val-sidebar-count">
+              {deliverables.length} {deliverables.length === 1 ? "deliverable" : "total"}
+            </span>
           </div>
 
           <div className="val-deliv-list">
-            {INITIAL_DELIVERABLES.map((deliv) => {
+            {deliverables.map((deliv) => {
               const isSelected = deliv.id === selectedDelivId;
-              const DelivIcon = deliv.icon;
+              const DelivIcon = deliv.icon || Icon.Doc;
               return (
                 <div
                   key={deliv.id}
@@ -543,8 +697,8 @@ export default function ValidateResultPage() {
               <span className="val-doc-top-icon">
                 <Icon.Doc />
               </span>
-              <span className="val-doc-top-title">Executive Summary</span>
-              <span className="val-doc-pill draft-pill">DRAFT</span>
+              <span className="val-doc-top-title">{activeDeliverable.title}</span>
+              <span className="val-doc-pill draft-pill">{isRefineMode ? "REFINED DRAFT" : "DRAFT"}</span>
               <span className="val-doc-version">v1.0</span>
             </div>
 
@@ -596,7 +750,7 @@ export default function ValidateResultPage() {
                 title="Copy Content"
                 onClick={() => {
                   navigator.clipboard?.writeText(
-                    "Executive Summary\nIncident Response - Operational Overview\nCLASSIFIED SRI GEN INTELLIGENCE PRODUCT"
+                    `${activeDeliverable.title}\n\n${activeDraft?.content || activeDraft?.draft_content || ""}`
                   );
                 }}
               >
@@ -633,119 +787,207 @@ export default function ValidateResultPage() {
 
               {/* Title & Subtitle */}
               <div className="val-sheet-title-group">
-                <h1 className="val-sheet-title">Executive Summary</h1>
-                <p className="val-sheet-subtitle">Incident Response – Operational Overview</p>
+                <h1 className="val-sheet-title">{activeDeliverable.title}</h1>
+                <p className="val-sheet-subtitle">{activeDeliverableSubtitle}</p>
               </div>
 
               {/* Thin Rules & Document Metadata Table */}
               <div className="val-sheet-meta-bar">
                 <div className="val-sm-cell">
-                  <span className="val-sm-lbl">SOURCE</span>
-                  <span className="val-sm-val">
-                    {storeState.source?.name || "incident_report.pdf"}
-                  </span>
+                  <span className="val-sm-lbl">SOURCE:</span>
+                  <span className="val-sm-val">{cfgSource}</span>
                 </div>
                 <div className="val-sm-cell">
                   <span className="val-sm-lbl">DATE:</span>
-                  <span className="val-sm-val">15 Sep 2026</span>
+                  <span className="val-sm-val">{currentDateStr}</span>
                 </div>
                 <div className="val-sm-cell">
                   <span className="val-sm-lbl">REF:</span>
                   <span className="val-sm-val">
-                    {storeState.source?.id || "SRI-2026-041"}
+                    {activeDraft?.id || storeState.source?.id || "SRI-2026-041"}
                   </span>
                 </div>
               </div>
 
-              {/* Body Content with Inline Claim Highlights */}
+              {/* Body Content with Dynamic Rendering & Claim Highlights */}
               <div className="val-sheet-body">
-                {/* 1. Situation */}
-                <section className="val-sheet-section">
-                  <h2 className="val-section-heading">1. Situation</h2>
-                  <p className="val-sheet-para">
-                    The incident affected{" "}
-                    <mark className="val-paper-mark-green">24 systems</mark>{" "}
-                    <span
-                      className={`val-claim-pill chip-verified ${
-                        selectedClaimId === "E01" ? "chip-active" : ""
-                      }`}
-                      onClick={() => handleSelectClaim("E01")}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      E01 <span className="chip-status">VERIFIED</span>
-                    </span>{" "}
-                    across the affected region, with initial indications of coordinated activity
-                    targeting critical infrastructure. The event was detected on 14 Sep 2026 at
-                    approximately 03:42 (UTC) and remains under investigation.
-                  </p>
-                  <p className="val-sheet-para">
-                    Preliminary analysis suggests the activity is consistent with a known threat
-                    actor's tactics, techniques and procedures (TTPs) observed in recent campaigns.
-                  </p>
-                </section>
+                {activeDraft && (activeDraft.content || activeDraft.draft_content) ? (
+                  <div className="val-dynamic-prose">
+                    {(activeDraft.content || activeDraft.draft_content).split("\n\n").map((chunk, cIdx) => {
+                      const trimmed = chunk.trim();
+                      if (!trimmed) return null;
+                      if (trimmed.startsWith("# ")) {
+                        return (
+                          <h2 key={cIdx} className="val-section-heading">
+                            {trimmed.replace(/^#\s+/, "")}
+                          </h2>
+                        );
+                      }
+                      if (trimmed.startsWith("## ")) {
+                        return (
+                          <h3 key={cIdx} className="val-section-subheading">
+                            {trimmed.replace(/^##\s+/, "")}
+                          </h3>
+                        );
+                      }
+                      if (trimmed.startsWith("### ")) {
+                        return (
+                          <h4 key={cIdx} className="val-section-subheading-sm">
+                            {trimmed.replace(/^###\s+/, "")}
+                          </h4>
+                        );
+                      }
+                      if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("✔ ")) {
+                        const items = trimmed.split("\n").filter((l) => l.trim().length > 0);
+                        return (
+                          <ul key={cIdx} className="val-sheet-list">
+                            {items.map((line, lIdx) => {
+                              const cleanLine = line.replace(/^[-*✔]\s*/, "");
+                              const matchedTag = claimTags.find((tag) =>
+                                claimsMap[tag]?.quote &&
+                                cleanLine.toLowerCase().includes(claimsMap[tag].quote.slice(0, 25).toLowerCase())
+                              ) || (claimTags[lIdx]);
 
-                {/* 2. Key Findings */}
-                <section className="val-sheet-section">
-                  <h2 className="val-section-heading">2. Key Findings</h2>
-                  <ul className="val-sheet-list">
-                    <li>
-                      <mark className="val-paper-mark-green">24 systems</mark> were affected across
-                      the region.{" "}
-                      <span
-                        className={`val-claim-pill chip-verified ${
-                          selectedClaimId === "E01" ? "chip-active" : ""
-                        }`}
-                        onClick={() => handleSelectClaim("E01")}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        E01 <span className="chip-status">VERIFIED</span>
-                      </span>
-                    </li>
-                    <li className="val-li-highlighted">
-                      Initial access was likely gained via a compromised credential.{" "}
-                      <span
-                        className={`val-claim-pill chip-attention ${
-                          selectedClaimId === "E03" ? "chip-active" : ""
-                        }`}
-                        onClick={() => handleSelectClaim("E03")}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        E03 <span className="chip-status">ATTENTION</span>
-                      </span>
-                    </li>
-                    <li>
-                      No evidence of data exfiltration at this time.{" "}
-                      <span
-                        className={`val-claim-pill chip-verified ${
-                          selectedClaimId === "E06" ? "chip-active" : ""
-                        }`}
-                        onClick={() => handleSelectClaim("E06")}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        E06 <span className="chip-status">VERIFIED</span>
-                      </span>
-                    </li>
-                  </ul>
-                </section>
+                              return (
+                                <li key={lIdx} className={matchedTag && claimsMap[matchedTag]?.status === "ATTENTION" ? "val-li-highlighted" : ""}>
+                                  {cleanLine}{" "}
+                                  {matchedTag && claimsMap[matchedTag] && (
+                                    <span
+                                      className={`val-claim-pill ${claimsMap[matchedTag].status === "ATTENTION" ? "chip-attention" : "chip-verified"} ${selectedClaimId === matchedTag ? "chip-active" : ""}`}
+                                      onClick={() => handleSelectClaim(matchedTag)}
+                                      role="button"
+                                      tabIndex={0}
+                                    >
+                                      {matchedTag} <span className="chip-status">{claimsMap[matchedTag].status}</span>
+                                    </span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        );
+                      }
+                      if (/^\d+\.\s/.test(trimmed)) {
+                        const items = trimmed.split("\n").filter((l) => l.trim().length > 0);
+                        return (
+                          <ol key={cIdx} className="val-sheet-numbered">
+                            {items.map((line, lIdx) => (
+                              <li key={lIdx}>{line.replace(/^\d+\.\s*/, "")}</li>
+                            ))}
+                          </ol>
+                        );
+                      }
+                      // Paragraph
+                      const pClaimTag = claimTags.find((tag) =>
+                        claimsMap[tag]?.quote && trimmed.toLowerCase().includes(claimsMap[tag].quote.slice(0, 25).toLowerCase())
+                      ) || (cIdx === 0 && claimTags[0]);
 
-                {/* 3. Recommended Action */}
-                <section className="val-sheet-section">
-                  <h2 className="val-section-heading">3. Recommended Action</h2>
-                  <ol className="val-sheet-numbered">
-                    <li>Increase monitoring on affected systems.</li>
-                    <li>Validate credential hygiene and access controls.</li>
-                    <li>Continue investigation to determine full scope and attribution.</li>
-                  </ol>
-                </section>
+                      return (
+                        <p key={cIdx} className="val-sheet-para">
+                          {trimmed}{" "}
+                          {pClaimTag && claimsMap[pClaimTag] && (
+                            <span
+                              className={`val-claim-pill ${claimsMap[pClaimTag].status === "ATTENTION" ? "chip-attention" : "chip-verified"} ${selectedClaimId === pClaimTag ? "chip-active" : ""}`}
+                              onClick={() => handleSelectClaim(pClaimTag)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              {pClaimTag} <span className="chip-status">{claimsMap[pClaimTag].status}</span>
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    {/* Fallback baseline view if opened directly without prior generation */}
+                    <section className="val-sheet-section">
+                      <h2 className="val-section-heading">1. Situation</h2>
+                      <p className="val-sheet-para">
+                        The incident affected{" "}
+                        <mark className="val-paper-mark-green">24 systems</mark>{" "}
+                        <span
+                          className={`val-claim-pill chip-verified ${
+                            selectedClaimId === "E01" ? "chip-active" : ""
+                          }`}
+                          onClick={() => handleSelectClaim("E01")}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          E01 <span className="chip-status">VERIFIED</span>
+                        </span>{" "}
+                        across the affected region, with initial indications of coordinated activity
+                        targeting critical infrastructure. The event was detected on 14 Sep 2026 at
+                        approximately 03:42 (UTC) and remains under investigation.
+                      </p>
+                      <p className="val-sheet-para">
+                        Preliminary analysis suggests the activity is consistent with a known threat
+                        actor's tactics, techniques and procedures (TTPs) observed in recent campaigns.
+                      </p>
+                    </section>
+
+                    <section className="val-sheet-section">
+                      <h2 className="val-section-heading">2. Key Findings</h2>
+                      <ul className="val-sheet-list">
+                        <li>
+                          <mark className="val-paper-mark-green">24 systems</mark> were affected across
+                          the region.{" "}
+                          <span
+                            className={`val-claim-pill chip-verified ${
+                              selectedClaimId === "E01" ? "chip-active" : ""
+                            }`}
+                            onClick={() => handleSelectClaim("E01")}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            E01 <span className="chip-status">VERIFIED</span>
+                          </span>
+                        </li>
+                        <li className="val-li-highlighted">
+                          Initial access was likely gained via a compromised credential.{" "}
+                          <span
+                            className={`val-claim-pill chip-attention ${
+                              selectedClaimId === "E03" ? "chip-active" : ""
+                            }`}
+                            onClick={() => handleSelectClaim("E03")}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            E03 <span className="chip-status">ATTENTION</span>
+                          </span>
+                        </li>
+                        <li>
+                          No evidence of data exfiltration at this time.{" "}
+                          <span
+                            className={`val-claim-pill chip-verified ${
+                              selectedClaimId === "E06" ? "chip-active" : ""
+                            }`}
+                            onClick={() => handleSelectClaim("E06")}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            E06 <span className="chip-status">VERIFIED</span>
+                          </span>
+                        </li>
+                      </ul>
+                    </section>
+
+                    <section className="val-sheet-section">
+                      <h2 className="val-section-heading">3. Recommended Action</h2>
+                      <ol className="val-sheet-numbered">
+                        <li>Increase monitoring on affected systems.</li>
+                        <li>Validate credential hygiene and access controls.</li>
+                        <li>Continue investigation to determine full scope and attribution.</li>
+                      </ol>
+                    </section>
+                  </>
+                )}
               </div>
 
               {/* Watermark Angled Stamp */}
               <div className="val-watermark-draft" aria-hidden="true">
-                DRAFT
+                {isRefineMode ? "REFINED" : "DRAFT"}
               </div>
 
               {/* Fine Document Footer */}
@@ -754,7 +996,7 @@ export default function ValidateResultPage() {
                 <span className="footer-slash">/</span>
                 <span>INTELLIGENCE PRODUCT</span>
                 <span className="footer-slash">/</span>
-                <span>EXECUTIVE SUMMARY</span>
+                <span>{activeDeliverable.title}</span>
               </div>
             </article>
           </div>
@@ -1002,28 +1244,32 @@ export default function ValidateResultPage() {
               <div className="val-card-body">
                 <div className="val-config-grid">
                   <div className="val-cfg-item">
-                    <span className="cfg-key">Source</span>
-                    <span className="cfg-val">
-                      {storeState.source?.name || "incident_report.pdf"}
+                    <span className="cfg-key">Mode</span>
+                    <span className="cfg-val cfg-highlight-green">
+                      {isRefineMode ? "Evidence-Grounded Refine" : "Multi-Adapter Generation"}
                     </span>
                   </div>
                   <div className="val-cfg-item">
+                    <span className="cfg-key">Source</span>
+                    <span className="cfg-val">{cfgSource}</span>
+                  </div>
+                  <div className="val-cfg-item">
                     <span className="cfg-key">Language</span>
-                    <span className="cfg-val">Auto</span>
+                    <span className="cfg-val">{cfgLanguage}</span>
                   </div>
 
                   <div className="val-cfg-item">
                     <span className="cfg-key">Deliverables</span>
-                    <span className="cfg-val">Executive Summary + LinkedIn Post + Advisory</span>
+                    <span className="cfg-val">{cfgDeliverableNames}</span>
                   </div>
                   <div className="val-cfg-item">
                     <span className="cfg-key">Detail</span>
-                    <span className="cfg-val">Balanced</span>
+                    <span className="cfg-val">{cfgDetail}</span>
                   </div>
 
                   <div className="val-cfg-item">
                     <span className="cfg-key">Audience</span>
-                    <span className="cfg-val">Senior Leadership</span>
+                    <span className="cfg-val">{cfgAudience}</span>
                   </div>
                   <div className="val-cfg-item">
                     <span className="cfg-key">Security</span>
@@ -1032,11 +1278,13 @@ export default function ValidateResultPage() {
 
                   <div className="val-cfg-item">
                     <span className="cfg-key">Tone</span>
-                    <span className="cfg-val">Auto → Formal</span>
+                    <span className="cfg-val">{cfgTone}</span>
                   </div>
                   <div className="val-cfg-item">
                     <span className="cfg-key">Fact Base</span>
-                    <span className="cfg-val">One shared Fact / Entity Graph</span>
+                    <span className="cfg-val">
+                      {isRefineMode ? "Grounding Guard & Fact Graph" : "One shared Fact / Entity Graph"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1062,37 +1310,37 @@ export default function ValidateResultPage() {
           {/* Middle Telemetry Statistics */}
           <div className="val-bottom-metrics">
             <div className="val-metric-col">
-              <span className="metric-val">3</span>
-              <span className="metric-lbl">deliverables</span>
+              <span className="metric-val">{deliverables.length}</span>
+              <span className="metric-lbl">{deliverables.length === 1 ? "deliverable" : "deliverables"}</span>
             </div>
             <div className="metric-divider"></div>
 
             <div className="val-metric-col">
-              <span className="metric-val">17</span>
+              <span className="metric-val">{totalClaimsCount}</span>
               <span className="metric-lbl">claims checked</span>
             </div>
             <div className="metric-divider"></div>
 
             <div className="val-metric-col">
-              <span className="metric-val metric-green">16</span>
+              <span className="metric-val metric-green">{verifiedClaimsCount}</span>
               <span className="metric-lbl">verified</span>
             </div>
             <div className="metric-divider"></div>
 
             <div className="val-metric-col">
-              <span className="metric-val metric-amber">1</span>
+              <span className="metric-val metric-amber">{attentionClaimsCount}</span>
               <span className="metric-lbl">requires attention</span>
             </div>
             <div className="metric-divider"></div>
 
             <div className="val-metric-col">
-              <span className="metric-val">2</span>
+              <span className="metric-val">{disclosureList.length}</span>
               <span className="metric-lbl">disclosure actions</span>
             </div>
             <div className="metric-divider"></div>
 
             <div className="val-metric-col">
-              <span className="metric-val">91/100</span>
+              <span className="metric-val">{compositeTrustScore}/100</span>
               <span className="metric-lbl">Trust</span>
             </div>
             <div className="metric-divider"></div>

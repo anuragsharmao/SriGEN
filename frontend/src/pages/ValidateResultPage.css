@@ -731,6 +731,38 @@
   margin: 0 0 10px 0;
 }
 
+.val-section-subheading {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2126;
+  margin: 18px 0 8px 0;
+}
+
+.val-section-subheading-sm {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4b4f58;
+  margin: 14px 0 6px 0;
+}
+
+.val-dynamic-prose {
+  font-family: "Georgia", serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #26282d;
+}
+
+.val-li-highlighted {
+  background: rgba(224, 159, 62, 0.12);
+  border-left: 2px solid #e09f3e;
+  padding-left: 8px;
+  border-radius: 2px;
+}
+
 .val-sheet-para {
   font-family: "Georgia", serif;
   font-size: 14.5px;

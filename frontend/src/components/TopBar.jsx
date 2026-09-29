@@ -38,17 +38,14 @@ export default function TopBar({ activePage }) {
 
   // Determine current active page from prop or pathname
   const currentActive =
-    activePage === "generate" ||
-    activePage === "result" ||
-    activePage === "validate" ||
-    activePage === "verify-review" ||
-    ["/generate", "/result", "/validate", "/verify-review"].includes(location.pathname)
+    activePage ||
+    (["/generate", "/result", "/validate", "/verify-review"].includes(location.pathname)
       ? "generate"
-      : activePage === "home" || location.pathname === "/dashboard"
+      : location.pathname === "/dashboard"
       ? "home"
-      : activePage === "history" || location.hash === "#history"
+      : location.hash === "#history"
       ? "history"
-      : activePage || "";
+      : "");
 
   return (
     <header className="dash-nav srigen-master-topbar">

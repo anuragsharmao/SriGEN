@@ -23,6 +23,7 @@ class WorkflowStore {
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
+          mode: parsed.mode || "generate",
           source: parsed.source || EMPTY_SOURCE,
           batchId: parsed.batchId || "batch_" + Date.now().toString(36),
           factGraph: parsed.factGraph || null,
@@ -41,6 +42,7 @@ class WorkflowStore {
     }
 
     return {
+      mode: "generate",
       source: EMPTY_SOURCE,
       batchId: null,
       factGraph: null,
@@ -135,8 +137,19 @@ class WorkflowStore {
     }
   }
 
+  // Workflow mode: "generate" | "refine"
+  getMode() {
+    return this.state.mode || "generate";
+  }
+
+  setMode(mode) {
+    this.state.mode = mode;
+    this.save();
+  }
+
   // Updates from generation run
-  setGenerationResult(generateResponse, sourceMeta = null) {
+  setGenerationResult(generateResponse, sourceMeta = null, mode = "generate") {
+    this.state.mode = mode;
     if (sourceMeta) {
       this.state.source = {
         ...this.state.source,
@@ -168,6 +181,44 @@ class WorkflowStore {
     // Reset decisions for new generation
     this.state.disclosureDecisions = {};
     this.state.disclosureItems = generateResponse.disclosure_items || [];
+    this.state.approvalStatus = "pending";
+    this.state.latestLedgerEntry = null;
+    this.save();
+  }
+
+  // Updates from refinement run
+  setRefineResult(refineResult, sourceMeta = null) {
+    this.state.mode = "refine";
+    if (sourceMeta) {
+      this.state.source = {
+        ...this.state.source,
+        ...sourceMeta,
+      };
+    } else if (refineResult.source_id) {
+      this.state.source = {
+        ...this.state.source,
+        id: refineResult.source_id,
+        hash: refineResult.source_hash || this.state.source?.hash,
+      };
+    }
+
+    if (refineResult.batch_id) {
+      this.state.batchId = refineResult.batch_id;
+    }
+    if (refineResult.fact_graph) {
+      this.state.factGraph = refineResult.fact_graph;
+    }
+    if (refineResult.trust_score) {
+      this.state.trustScore = refineResult.trust_score;
+    }
+
+    if (refineResult.drafts && Array.isArray(refineResult.drafts)) {
+      this.state.drafts = refineResult.drafts;
+      this.state.selectedDraftId = refineResult.drafts[0]?.id || null;
+    }
+
+    this.state.disclosureDecisions = {};
+    this.state.disclosureItems = refineResult.disclosure_items || [];
     this.state.approvalStatus = "pending";
     this.state.latestLedgerEntry = null;
     this.save();

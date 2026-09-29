@@ -758,7 +758,7 @@ export default function Dashboard() {
                   <span className="wf-tl-node">Adapt</span>
                 </div>
 
-                <a className="wf-cta-btn wf-cta-refine" href="#refine">
+                <a className="wf-cta-btn wf-cta-refine" href="/refine">
                   <span>Start Refinement</span>
                   <Icon.ArrowRight />
                 </a>
